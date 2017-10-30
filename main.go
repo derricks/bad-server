@@ -2,8 +2,8 @@ package main
 
 import (
 	"flag"
-  "fmt"
-  "log"
+	"fmt"
+	"log"
 	"net/http"
 
 	"bad-server/badness"
@@ -18,15 +18,15 @@ func init() {
 func main() {
 	flag.Parse()
 
-  http.HandleFunc("/", handleBadServerRequest)
-  log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
+	http.HandleFunc("/", handleBadServerRequest)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
 
 // handleBadServerRequest will delegate to appropriate other handlers to generate
 // the appropriate bad response
 func handleBadServerRequest(response http.ResponseWriter, request *http.Request) {
-  pipeline := badness.GetResponsePipeline(request)
-  for _, responseHandler := range pipeline {
-    responseHandler(response)
-  }  
+	pipeline := badness.GetResponsePipeline(request)
+	for _, responseHandler := range pipeline {
+		responseHandler(response)
+	}
 }

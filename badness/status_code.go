@@ -2,7 +2,7 @@ package badness
 
 import (
 	"log"
-  "math/rand"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -18,30 +18,30 @@ const CodeByHistogram = "X-Response-Code-Histogram"
 // bad request will be returned instead
 func generateHistogramStatusCode(request *http.Request) ResponseHandler {
 
-  histogram := buildHistogram(request.Header[CodeByHistogram])
-  if len(histogram) == 0 {
-  	return func(response http.ResponseWriter) error {
-  		response.WriteHeader(http.StatusBadRequest)
-  		return nil
-  	}
-  }
-  
-  return func(response http.ResponseWriter) error {
-    probability := rand.Float32() * float32(100.0)
-    entryCumulative := float32(0.0)
-    
-    // go through each entry. if the cumulative entry
-    // is greater than the random probability
-    // use that as the status code
-    for _, entry := range histogram {
-      entryCumulative += entry.probability
-      if entryCumulative > probability {
-        response.WriteHeader(entry.statusCode)
-        return nil
-      }
-    }
-    return nil
-  }
+	histogram := buildHistogram(request.Header[CodeByHistogram])
+	if len(histogram) == 0 {
+		return func(response http.ResponseWriter) error {
+			response.WriteHeader(http.StatusBadRequest)
+			return nil
+		}
+	}
+
+	return func(response http.ResponseWriter) error {
+		probability := rand.Float32() * float32(100.0)
+		entryCumulative := float32(0.0)
+
+		// go through each entry. if the cumulative entry
+		// is greater than the random probability
+		// use that as the status code
+		for _, entry := range histogram {
+			entryCumulative += entry.probability
+			if entryCumulative > probability {
+				response.WriteHeader(entry.statusCode)
+				return nil
+			}
+		}
+		return nil
+	}
 }
 
 // buildHistogram uses headerValues to build up a histogram
@@ -84,7 +84,7 @@ func buildHistogram(headerValues []string) []statusCodeHistogramEntry {
 	}
 
 	if !float32sEqual(100.0, totalProbability, .1) {
-    log.Printf("Probabilities do not add up to 100: %f\n", totalProbability)
+		log.Printf("Probabilities do not add up to 100: %f\n", totalProbability)
 		return []statusCodeHistogramEntry{}
 	}
 

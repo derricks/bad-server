@@ -15,3 +15,4 @@ X-Response-Code-Histogram: send a status code based on an input histogram
   * X-Response-Code-Histogram: 500=50,200=50 will return 500s half the time, 200s the other
   * X-Response-Code-Histogram: 490 will return 490 even though it's not a standard http code
 
+X-Request-Body-As-Response: send the request body back in the response

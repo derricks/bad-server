@@ -2,6 +2,7 @@ package badness
 
 import (
 	"net/http"
+	"strings"
 )
 
 type ResponseHandler func(response http.ResponseWriter) error
@@ -15,6 +16,17 @@ func GetResponsePipeline(request *http.Request) []ResponseHandler {
 	if requestHasHeader(request, CodeByHistogram) {
 		pipeline = append(pipeline, generateHistogramStatusCode(request))
 	}
+
+	var bodyGenerator ResponseHandler
+
+	// build up body generators, for now with hard-coding
+	if requestHasHeader(request, RequestBodyIsResponse) {
+		bodyGenerator = buildBodyGenerator(request.Body)
+	} else {
+		bodyGenerator = buildBodyGenerator(strings.NewReader(""))
+	}
+
+	pipeline = append(pipeline, bodyGenerator)
 	return pipeline
 }
 

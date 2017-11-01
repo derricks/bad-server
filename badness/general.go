@@ -1,6 +1,8 @@
 package badness
 
 import (
+	"io"
+  "log"
 	"net/http"
 	"strings"
 )
@@ -17,17 +19,42 @@ func GetResponsePipeline(request *http.Request) []ResponseHandler {
 		pipeline = append(pipeline, generateHistogramStatusCode(request))
 	}
 
-	var bodyGenerator ResponseHandler
-
-	// build up body generators, for now with hard-coding
-	if requestHasHeader(request, RequestBodyIsResponse) {
-		bodyGenerator = buildBodyGenerator(request.Body)
+	bodyGenerator := getBodyGenerator(request)
+	affectedGenerator, err := getResponseAffector(request, bodyGenerator)
+	if err == nil {
+		pipeline = append(pipeline, buildBodyGenerator(affectedGenerator))
 	} else {
-		bodyGenerator = buildBodyGenerator(strings.NewReader(""))
+    log.Printf("Could not create response affector: %v", err)
+  }
+  
+	return pipeline
+}
+
+// getBodyGenerator returns a Reader that will generate the body text
+// based on settings in the request headers.
+// currently we only support
+func getBodyGenerator(request *http.Request) io.Reader {
+	if requestHasHeader(request, RequestBodyIsResponse) {
+		return request.Body
+	} else {
+		return strings.NewReader("")
 	}
 
-	pipeline = append(pipeline, bodyGenerator)
-	return pipeline
+}
+
+// getResponseAffector uses the http request headers to decorate the given reader
+// with appropriate affectors (things that affect the
+// sending of the response regardless of the body)
+func getResponseAffector(request *http.Request, reader io.Reader) (returnReader io.Reader, err error) {
+
+	if requestHasHeader(request, PauseBeforeStart) {
+		returnReader, err = getInitialLatencyAffector(request, reader)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return returnReader, nil
 }
 
 // requestHasHeader returns true if the given request has the handler, false if not

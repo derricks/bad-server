@@ -16,3 +16,8 @@ X-Response-Code-Histogram: send a status code based on an input histogram
   * X-Response-Code-Histogram: 490 will return 490 even though it's not a standard http code
 
 X-Request-Body-As-Response: send the request body back in the response
+
+X-Pause-Before-Response-Start: wait the specified amount of time before sending a response.
+
+  * X-Pause-Before-Response-Start: 300 => wait 300ms before responding
+  * X-Pause-Before-Response-Start: 1m => wait one minute before responding (uses [golang duration syntax](https://golang.org/pkg/time/#ParseDuration))

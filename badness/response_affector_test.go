@@ -42,3 +42,62 @@ func TestInitialLatencyConstruction(test *testing.T) {
 		}
 	}
 }
+
+type noiseExpectation struct {
+	frequency float64
+	err       error
+}
+
+func TestNoiseAffectorConstruction(test *testing.T) {
+	expectations := map[string]noiseExpectation{
+		"":            noiseExpectation{0.0, errors.New("blank string should yield error")},
+		"17.2":        noiseExpectation{.172, nil},
+		"not a float": noiseExpectation{0.0, errors.New("unparseable float should yield error")},
+	}
+
+	for headerValue, expectation := range expectations {
+		request := makeTestRequest()
+		request.Header[AddNoise] = []string{headerValue}
+
+		affector, err := getNoiseAffector(request, strings.NewReader(""))
+		if expectation.err == nil && err != nil {
+			test.Fatalf("Header %s yielded unexpected error %v", headerValue, err)
+		}
+
+		if expectation.err != nil && err == nil {
+			test.Fatalf("Header %s should have produced an error but did not: %v", headerValue, expectation.err)
+		}
+
+		if !float64sEqual(expectation.frequency, affector.noiseFrequency, .01) {
+			test.Fatalf("Header %s should yield %f but actually yielded %f", headerValue, expectation.frequency, affector.noiseFrequency)
+		}
+	}
+}
+
+func TestNoiseAffector(test *testing.T) {
+	testString := "testing"
+	reader := strings.NewReader(testString)
+	testBytes := []byte(testString)
+
+	request := makeTestRequest()
+	request.Header[AddNoise] = []string{"100.0"}
+
+	affector, _ := getNoiseAffector(request, reader)
+
+	output := make([]byte, 1024)
+	bytesRead, _ := affector.Read(output)
+
+	matches := 0
+	// verify that each normal character has been replaced
+	for index, normalCharacter := range testBytes {
+		if output[index] == normalCharacter {
+			matches++
+		}
+	}
+
+	// while it's still possible for this to fail because two characters
+	// are randomly set to themselves, the probability is 1:(256 * 256)
+	if matches >= 2 {
+		test.Fatalf("High number (%d) of mismatches between input %s and mutated version %s", matches, testString, string(output[0:bytesRead]))
+	}
+}

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
@@ -52,4 +53,42 @@ func getInitialLatencyAffector(request *http.Request, reader io.Reader) (initial
 	} else {
 		return initialLatency{nil, time.Duration(0) * time.Nanosecond, false}, err
 	}
+}
+
+const AddNoise = "X-Add-Noise"
+
+// a response affector that randomly changes bytes.
+// noiseFrequency sets the randomness level to use for modifying bytes
+type noiseAffector struct {
+	reader         io.Reader
+	noiseFrequency float64
+}
+
+func (affector noiseAffector) Read(buffer []byte) (int, error) {
+	// first populate the buffer. per docs, process bytes first
+	bytesRead, err := affector.reader.Read(buffer)
+
+	for index, _ := range buffer[0:bytesRead] {
+		randomFloat := rand.Float64()
+		if randomFloat < affector.noiseFrequency {
+			buffer[index] = byte(rand.Intn(256))
+		}
+	}
+
+	return bytesRead, err
+}
+
+// getNoiseAffector returns a noiseAffector using the percentage value in
+// the header. If the header is defined multiple times, only the first is used.
+func getNoiseAffector(request *http.Request, reader io.Reader) (noiseAffector, error) {
+	frequencyString := request.Header[AddNoise][0]
+	if frequencyString == "" {
+		return noiseAffector{}, errors.New(fmt.Sprintf("%s requires a float parameter", AddNoise))
+	}
+
+	percentage, err := strconv.ParseFloat(frequencyString, 64)
+	if err != nil {
+		return noiseAffector{}, err
+	}
+	return noiseAffector{reader: reader, noiseFrequency: percentage / 100.0}, nil
 }

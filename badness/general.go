@@ -2,7 +2,7 @@ package badness
 
 import (
 	"io"
-  "log"
+	"log"
 	"net/http"
 	"strings"
 )
@@ -24,9 +24,9 @@ func GetResponsePipeline(request *http.Request) []ResponseHandler {
 	if err == nil {
 		pipeline = append(pipeline, buildBodyGenerator(affectedGenerator))
 	} else {
-    log.Printf("Could not create response affector: %v", err)
-  }
-  
+		log.Printf("Could not create response affector: %v", err)
+	}
+
 	return pipeline
 }
 
@@ -47,8 +47,16 @@ func getBodyGenerator(request *http.Request) io.Reader {
 // sending of the response regardless of the body)
 func getResponseAffector(request *http.Request, reader io.Reader) (returnReader io.Reader, err error) {
 
+	returnReader = reader
 	if requestHasHeader(request, PauseBeforeStart) {
-		returnReader, err = getInitialLatencyAffector(request, reader)
+		returnReader, err = getInitialLatencyAffector(request, returnReader)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if requestHasHeader(request, AddNoise) {
+		returnReader, err = getNoiseAffector(request, returnReader)
 		if err != nil {
 			return nil, err
 		}

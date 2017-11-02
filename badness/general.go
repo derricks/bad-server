@@ -42,23 +42,26 @@ func getBodyGenerator(request *http.Request) io.Reader {
 
 }
 
+type responseAffector func(request *http.Request, reader io.Reader) (io.Reader, error)
+
+var headerToAffector = map[string]responseAffector{
+	AddNoise:         getNoiseAffector,
+	PauseBeforeStart: getInitialLatencyAffector,
+}
+
 // getResponseAffector uses the http request headers to decorate the given reader
 // with appropriate affectors (things that affect the
 // sending of the response regardless of the body)
 func getResponseAffector(request *http.Request, reader io.Reader) (returnReader io.Reader, err error) {
 
 	returnReader = reader
-	if requestHasHeader(request, PauseBeforeStart) {
-		returnReader, err = getInitialLatencyAffector(request, returnReader)
-		if err != nil {
-			return nil, err
-		}
-	}
 
-	if requestHasHeader(request, AddNoise) {
-		returnReader, err = getNoiseAffector(request, returnReader)
-		if err != nil {
-			return nil, err
+	for header, getter := range headerToAffector {
+		if requestHasHeader(request, header) {
+			returnReader, err = getter(request, returnReader)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 

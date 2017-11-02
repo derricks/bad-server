@@ -24,7 +24,8 @@ func TestInitialLatencyConstruction(test *testing.T) {
 		request := makeTestRequest()
 		request.Header[PauseBeforeStart] = []string{waitString}
 
-		affector, err := getInitialLatencyAffector(request, strings.NewReader(""))
+		tempReader, err := getInitialLatencyAffector(request, strings.NewReader(""))
+		affector := tempReader.(initialLatency)
 		if err == nil && expectation.err != nil {
 			test.Fatalf("Expected error and got none for string %s : %v", waitString, expectation.err)
 		}
@@ -59,7 +60,8 @@ func TestNoiseAffectorConstruction(test *testing.T) {
 		request := makeTestRequest()
 		request.Header[AddNoise] = []string{headerValue}
 
-		affector, err := getNoiseAffector(request, strings.NewReader(""))
+		tempReader, err := getNoiseAffector(request, strings.NewReader(""))
+		affector := tempReader.(noiseAffector)
 		if expectation.err == nil && err != nil {
 			test.Fatalf("Header %s yielded unexpected error %v", headerValue, err)
 		}
@@ -82,7 +84,8 @@ func TestNoiseAffector(test *testing.T) {
 	request := makeTestRequest()
 	request.Header[AddNoise] = []string{"100.0"}
 
-	affector, _ := getNoiseAffector(request, reader)
+	tempReader, _ := getNoiseAffector(request, reader)
+	affector := tempReader.(noiseAffector)
 
 	output := make([]byte, 1024)
 	bytesRead, _ := affector.Read(output)

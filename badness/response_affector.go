@@ -34,7 +34,7 @@ func (affector initialLatency) Read(buffer []byte) (int, error) {
 // the values for the header can be passed as a straight int, in which case
 // they are interpreted as milliseconds, or a golang Duration string (e.g., 100ms).
 // If multiple values of the header are defined, only the first is used
-func getInitialLatencyAffector(request *http.Request, reader io.Reader) (initialLatency, error) {
+func getInitialLatencyAffector(request *http.Request, reader io.Reader) (io.Reader, error) {
 	waitString := request.Header[PauseBeforeStart][0]
 	if waitString == "" {
 		return initialLatency{nil, time.Duration(0) * time.Nanosecond, false}, errors.New(fmt.Sprintf("No value defined for %s header. Pass an integer or a duration string", PauseBeforeStart))
@@ -80,7 +80,7 @@ func (affector noiseAffector) Read(buffer []byte) (int, error) {
 
 // getNoiseAffector returns a noiseAffector using the percentage value in
 // the header. If the header is defined multiple times, only the first is used.
-func getNoiseAffector(request *http.Request, reader io.Reader) (noiseAffector, error) {
+func getNoiseAffector(request *http.Request, reader io.Reader) (io.Reader, error) {
 	frequencyString := request.Header[AddNoise][0]
 	if frequencyString == "" {
 		return noiseAffector{}, errors.New(fmt.Sprintf("%s requires a float parameter", AddNoise))

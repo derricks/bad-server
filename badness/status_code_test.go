@@ -2,42 +2,41 @@ package badness
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 )
 
 type histogramParseExpect struct {
 	statusCode  int
 	probability float32
-	err         error
+	errorExpectation
+}
+
+func buildHistogramParseExpect(statusCode int, probability float32, err error) histogramParseExpect {
+	return histogramParseExpect{statusCode, probability, errorExpectation{err}}
 }
 
 func TestHistogramEntryParsing(test *testing.T) {
 	expectations := map[string]histogramParseExpect{
-		"500=33.2": histogramParseExpect{500, 33.2, nil},
+		"500=33.2": buildHistogramParseExpect(500, 33.2, nil),
 
-		"": histogramParseExpect{0, 0.0, errors.New("empty string should yield error")},
+		"": buildHistogramParseExpect(0, 0.0, errors.New("empty string should yield error")),
 
-		"500": histogramParseExpect{500, 0.0, nil},
+		"500": buildHistogramParseExpect(500, 0.0, nil),
 
-		"500=": histogramParseExpect{500, 0.0, nil},
+		"500=": buildHistogramParseExpect(500, 0.0, nil),
 
-		"500=test": histogramParseExpect{0, 0.0, errors.New("500=test should yield an error")},
+		"500=test": buildHistogramParseExpect(0, 0.0, errors.New("500=test should yield an error")),
 
-		"x": histogramParseExpect{0, 0.0, errors.New("x should yield an error")},
+		"x": buildHistogramParseExpect(0, 0.0, errors.New("x should yield an error")),
 
-		"x=y": histogramParseExpect{0, 0.0, errors.New("x=y should yield parse errors")},
+		"x=y": buildHistogramParseExpect(0, 0.0, errors.New("x=y should yield parse errors")),
 	}
 
 	for parseString, expectation := range expectations {
 		entry, err := parseHistogramHeader(parseString)
 
-		if expectation.err != nil && err == nil {
-			test.Fatalf("Header %s should not produce an error but did: %v", parseString, expectation.err)
-		}
-
-		if expectation.err == nil && err != nil {
-			test.Fatalf("Header %s should produce an error but did not: %v", parseString, err)
-		}
+		checkErrorExpectation(fmt.Sprintf("Header %s", parseString), expectation.errorExpectation, err, test)
 
 		if entry.statusCode != expectation.statusCode {
 			test.Fatalf("Header %s should yield status code of %d, has %d", parseString, expectation.statusCode, entry.statusCode)

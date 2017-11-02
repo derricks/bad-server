@@ -2,6 +2,7 @@ package badness
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -9,15 +10,19 @@ import (
 
 type initialLatencyExpectation struct {
 	waitDuration time.Duration
-	err          error
+	errorExpectation
+}
+
+func buildLatencyExpectation(duration time.Duration, err error) initialLatencyExpectation {
+	return initialLatencyExpectation{duration, errorExpectation{err}}
 }
 
 func TestInitialLatencyConstruction(test *testing.T) {
 	expectations := map[string]initialLatencyExpectation{
-		"":             initialLatencyExpectation{time.Duration(0) * time.Nanosecond, errors.New("expecting error about empty string")},
-		"500":          initialLatencyExpectation{time.Duration(500) * time.Millisecond, nil},
-		"30s":          initialLatencyExpectation{time.Duration(30) * time.Second, nil},
-		"notParseable": initialLatencyExpectation{time.Duration(0) * time.Nanosecond, errors.New("expecting error about unparseable string")},
+		"":             buildLatencyExpectation(time.Duration(0)*time.Nanosecond, errors.New("expecting error about empty string")),
+		"500":          buildLatencyExpectation(time.Duration(500)*time.Millisecond, nil),
+		"30s":          buildLatencyExpectation(time.Duration(30)*time.Second, nil),
+		"notParseable": buildLatencyExpectation(time.Duration(0)*time.Nanosecond, errors.New("expecting error about unparseable string")),
 	}
 
 	for waitString, expectation := range expectations {
@@ -26,13 +31,7 @@ func TestInitialLatencyConstruction(test *testing.T) {
 
 		tempReader, err := getInitialLatencyAffector(request, strings.NewReader(""))
 		affector := tempReader.(initialLatency)
-		if err == nil && expectation.err != nil {
-			test.Fatalf("Expected error and got none for string %s : %v", waitString, expectation.err)
-		}
-
-		if err != nil && expectation.err == nil {
-			test.Fatalf("Got unexpected error for string %s: %v", waitString, err)
-		}
+		checkErrorExpectation(waitString, expectation.errorExpectation, err, test)
 
 		if affector.initialWait.Nanoseconds() != expectation.waitDuration.Nanoseconds() {
 			test.Fatalf("Expected %v for initial wait, got %v, string: %s", expectation.waitDuration, affector.initialWait, waitString)
@@ -46,14 +45,18 @@ func TestInitialLatencyConstruction(test *testing.T) {
 
 type noiseExpectation struct {
 	frequency float64
-	err       error
+	errorExpectation
+}
+
+func buildNoiseExpectation(frequency float64, err error) noiseExpectation {
+	return noiseExpectation{frequency, errorExpectation{err}}
 }
 
 func TestNoiseAffectorConstruction(test *testing.T) {
 	expectations := map[string]noiseExpectation{
-		"":            noiseExpectation{0.0, errors.New("blank string should yield error")},
-		"17.2":        noiseExpectation{.172, nil},
-		"not a float": noiseExpectation{0.0, errors.New("unparseable float should yield error")},
+		"":            buildNoiseExpectation(0.0, errors.New("blank string should yield error")),
+		"17.2":        buildNoiseExpectation(.172, nil),
+		"not a float": buildNoiseExpectation(0.0, errors.New("unparseable float should yield error")),
 	}
 
 	for headerValue, expectation := range expectations {
@@ -62,13 +65,7 @@ func TestNoiseAffectorConstruction(test *testing.T) {
 
 		tempReader, err := getNoiseAffector(request, strings.NewReader(""))
 		affector := tempReader.(noiseAffector)
-		if expectation.err == nil && err != nil {
-			test.Fatalf("Header %s yielded unexpected error %v", headerValue, err)
-		}
-
-		if expectation.err != nil && err == nil {
-			test.Fatalf("Header %s should have produced an error but did not: %v", headerValue, expectation.err)
-		}
+		checkErrorExpectation(fmt.Sprintf("Header %s", headerValue), expectation.errorExpectation, err, test)
 
 		if !float64sEqual(expectation.frequency, affector.noiseFrequency, .01) {
 			test.Fatalf("Header %s should yield %f but actually yielded %f", headerValue, expectation.frequency, affector.noiseFrequency)

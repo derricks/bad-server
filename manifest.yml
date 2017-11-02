@@ -21,6 +21,22 @@ spec:
          - containerPort: 7865
            protocol: TCP
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bad-server
+  namespace: ingress-benchmark
+spec:
+  selector:
+    app: bad-server
+  ports:
+  - name: http
+    port: 7865
+    protocol: TCP
+    targetport: 7865
+  type: ClusterIP
+
+---
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:

@@ -1,14 +1,8 @@
 package badness
 
 import (
-	"net/http"
-	"net/http/httptest"
 	"testing"
 )
-
-func makeTestRequest() *http.Request {
-	return httptest.NewRequest("GET", "http://localhost", nil)
-}
 
 func TestHeaderPresent(test *testing.T) {
 	request := makeTestRequest()

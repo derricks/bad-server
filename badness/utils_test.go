@@ -27,3 +27,35 @@ func TestUnequalFloat64ss(test *testing.T) {
 		test.Fatal("3.3 and 3.4 should not be equal but are")
 	}
 }
+
+const fakeHeader = "X-Test-Header"
+
+func TestFirstHeaderWhenNotSet(test *testing.T) {
+	request := makeTestRequest()
+	firstValue := getFirstHeaderValue(request, fakeHeader)
+	if firstValue != "" {
+		test.Fatalf("Expected blank string got %s", firstValue)
+	}
+}
+
+type firstHeaderExpect struct {
+	headerValues []string
+	value        string
+}
+
+func TestFirstHeader(test *testing.T) {
+	expectations := []firstHeaderExpect{
+		firstHeaderExpect{[]string{}, ""},
+		firstHeaderExpect{[]string{"value1"}, "value1"},
+		firstHeaderExpect{[]string{"value2", "value1"}, "value2"},
+	}
+
+	for _, expectation := range expectations {
+		request := makeTestRequest()
+		request.Header[fakeHeader] = expectation.headerValues
+		firstValue := getFirstHeaderValue(request, fakeHeader)
+		if firstValue != expectation.value {
+			test.Fatalf("Expected %s, got %s", expectation.value, firstValue)
+		}
+	}
+}

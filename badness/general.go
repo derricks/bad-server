@@ -14,6 +14,8 @@ type ResponseHandler func(response http.ResponseWriter) error
 // functions take a ResponseWriter as an argument.
 func GetResponsePipeline(request *http.Request) []ResponseHandler {
 	pipeline := make([]ResponseHandler, 0)
+  
+  pipeline = append(pipeline, getHeaderGenerators(request)...)
 	// generators that generate status codes go first
 	if requestHasHeader(request, CodeByHistogram) {
 		pipeline = append(pipeline, generateHistogramStatusCode(request))
@@ -28,6 +30,16 @@ func GetResponsePipeline(request *http.Request) []ResponseHandler {
 	}
 
 	return pipeline
+}
+
+// getHeaderGenerators builds up a slice of ResponseHandlers based on headers
+func getHeaderGenerators(request *http.Request) []ResponseHandler {
+  responseHandlers := make([]ResponseHandler, 0)
+  if requestHasHeader(request, ForceHeader) {
+    forceHeaders := buildForcedHeaders(request)
+    responseHandlers = append(responseHandlers, forceHeaders...)
+  }
+  return responseHandlers
 }
 
 // getBodyGenerator returns a Reader that will generate the body text

@@ -36,3 +36,10 @@ X-Add-Noise: randomly mutate bytes based on randomness percentage
 X-Return-Header: set the given header to the given value. Multiple instances of this header will get collated
 
   * X-Return-Header: Content-Type: application/json => response will have a Content-Type: application/json header
+  
+X-Generate-Random: generate random data for the given number of bytes
+
+  * X-Generate-Random: 100 => 100 random bytes are returned
+  
+  
+  

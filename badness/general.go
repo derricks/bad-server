@@ -4,6 +4,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -14,8 +15,8 @@ type ResponseHandler func(response http.ResponseWriter) error
 // functions take a ResponseWriter as an argument.
 func GetResponsePipeline(request *http.Request) []ResponseHandler {
 	pipeline := make([]ResponseHandler, 0)
-  
-  pipeline = append(pipeline, getHeaderGenerators(request)...)
+
+	pipeline = append(pipeline, getHeaderGenerators(request)...)
 	// generators that generate status codes go first
 	if requestHasHeader(request, CodeByHistogram) {
 		pipeline = append(pipeline, generateHistogramStatusCode(request))
@@ -34,12 +35,12 @@ func GetResponsePipeline(request *http.Request) []ResponseHandler {
 
 // getHeaderGenerators builds up a slice of ResponseHandlers based on headers
 func getHeaderGenerators(request *http.Request) []ResponseHandler {
-  responseHandlers := make([]ResponseHandler, 0)
-  if requestHasHeader(request, ForceHeader) {
-    forceHeaders := buildForcedHeaders(request)
-    responseHandlers = append(responseHandlers, forceHeaders...)
-  }
-  return responseHandlers
+	responseHandlers := make([]ResponseHandler, 0)
+	if requestHasHeader(request, ForceHeader) {
+		forceHeaders := buildForcedHeaders(request)
+		responseHandlers = append(responseHandlers, forceHeaders...)
+	}
+	return responseHandlers
 }
 
 // getBodyGenerator returns a Reader that will generate the body text
@@ -48,6 +49,14 @@ func getHeaderGenerators(request *http.Request) []ResponseHandler {
 func getBodyGenerator(request *http.Request) io.Reader {
 	if requestHasHeader(request, RequestBodyIsResponse) {
 		return request.Body
+	} else if requestHasHeader(request, GenerateRandomResponse) {
+		bodySizeField := getFirstHeaderValue(request, GenerateRandomResponse)
+		bodySize, err := strconv.Atoi(bodySizeField)
+		if err != nil {
+			log.Printf("Could not convert body size for random data: %s", bodySizeField)
+			return strings.NewReader("")
+		}
+		return newRandomBodyGenerator(bodySize)
 	} else {
 		return strings.NewReader("")
 	}

@@ -21,7 +21,7 @@ type initialLatency struct {
 	hasSlept    bool
 }
 
-func (affector initialLatency) Read(buffer []byte) (int, error) {
+func (affector *initialLatency) Read(buffer []byte) (int, error) {
 	if !affector.hasSlept {
 		time.Sleep(affector.initialWait)
 		affector.hasSlept = true
@@ -37,21 +37,21 @@ func (affector initialLatency) Read(buffer []byte) (int, error) {
 func getInitialLatencyAffector(request *http.Request, reader io.Reader) (io.Reader, error) {
 	waitString := getFirstHeaderValue(request, PauseBeforeStart)
 	if waitString == "" {
-		return initialLatency{nil, time.Duration(0) * time.Nanosecond, false}, errors.New(fmt.Sprintf("No value defined for %s header. Pass an integer or a duration string", PauseBeforeStart))
+		return &initialLatency{nil, time.Duration(0) * time.Nanosecond, false}, errors.New(fmt.Sprintf("No value defined for %s header. Pass an integer or a duration string", PauseBeforeStart))
 	}
 
 	// if field is an integer, use that
 	millis, err := strconv.Atoi(waitString)
 	if err == nil {
-		return initialLatency{reader, time.Duration(millis) * time.Millisecond, false}, nil
+		return &initialLatency{reader, time.Duration(millis) * time.Millisecond, false}, nil
 	}
 
 	// field was not an int. try and parse as duration
 	duration, err := time.ParseDuration(waitString)
 	if err == nil {
-		return initialLatency{reader, duration, false}, nil
+		return &initialLatency{reader, duration, false}, nil
 	} else {
-		return initialLatency{nil, time.Duration(0) * time.Nanosecond, false}, err
+		return &initialLatency{nil, time.Duration(0) * time.Nanosecond, false}, err
 	}
 }
 

@@ -3,6 +3,7 @@ package badness
 import (
 	"errors"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -30,7 +31,7 @@ func TestInitialLatencyConstruction(test *testing.T) {
 		request.Header[PauseBeforeStart] = []string{waitString}
 
 		tempReader, err := getInitialLatencyAffector(request, strings.NewReader(""))
-		affector := tempReader.(initialLatency)
+		affector := tempReader.(*initialLatency)
 		checkErrorExpectation(waitString, expectation.errorExpectation, err, test)
 
 		if affector.initialWait.Nanoseconds() != expectation.waitDuration.Nanoseconds() {
@@ -101,3 +102,34 @@ func TestNoiseAffector(test *testing.T) {
 		test.Fatalf("High number (%d) of mismatches between input %s and mutated version %s", matches, testString, string(output[0:bytesRead]))
 	}
 }
+
+func TestInitialLatencyEffect(test *testing.T) {
+	request := makeTestRequest()
+	request.Header[PauseBeforeStart] = []string{"300ms"}
+  embeddedReader := strings.NewReader("longish string")
+	buf := make([]byte,10) // force two reads
+	latencyAffector, err := getInitialLatencyAffector(request, embeddedReader)
+	if err != nil {
+		test.Fatalf("Unexpected error %v", err)
+	}
+	
+	start := time.Now()
+	// might as well check that bytes are being returned properly
+	bytesRead, err := latencyAffector.Read(buf)
+	if bytesRead != 10 || err != nil {
+		test.Fatalf("Expected to read 10 bytes without error, got %d bytes and %v", bytesRead, err)
+	}
+	bytesRead, err = latencyAffector.Read(buf)
+	if bytesRead != 4 && err != nil {
+		test.Fatalf("Expected to read 4 bytes with no error, got %d and %v", bytesRead, err)
+	}
+  bytesRead, err = latencyAffector.Read(buf)
+	if bytesRead != 0 && err != io.EOF {
+		test.Fatalf("Expected 0 bytes and EOF, got %d bytes and %v", bytesRead, err)
+	}
+	timeTaken := time.Since(start)
+	if timeTaken.Seconds() > 0.5 {
+		test.Fatalf("Test should have taken ~300ms: took %f", timeTaken.Seconds())
+	}
+}
+

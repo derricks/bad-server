@@ -1,0 +1,55 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: bad-server
+  namespace: ingress-benchmark 
+spec:
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: bad-server
+    spec:
+      containers:
+       - image: registry.example.com:6666/bad-server:latest
+         name: bad-server
+         imagePullPolicy: IfNotPresent 
+         command: ["go"]
+         args: ["run", "/go/src/bad-server/main.go"]
+         ports:
+         - containerPort: 7865
+           protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bad-server
+  namespace: ingress-benchmark
+spec:
+  selector:
+    app: bad-server
+  ports:
+  - name: http
+    port: 7865
+    protocol: TCP
+    targetport: 7865
+  type: ClusterIP
+
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: bad-server
+  namespace: ingress-benchmark
+spec:
+  rules:
+  - host: bad.internal.example.com
+    http:
+      paths:
+      - backend:
+          serviceName: bad-server
+          servicePort: 7865 
+        path: /
+status:
+  loadBalancer: {}

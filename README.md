@@ -41,5 +41,41 @@ X-Generate-Random: generate random data for the given number of bytes
 
   * X-Generate-Random: 100 => 100 random bytes are returned
   
+Complex Examples
+----------------
+Combining headers lets you create other types of unexpected behaviors.
+
+Response's content-type does not match content.
+
+    X-Return-Header: Content-Type: application/json
+    X-Generate-Random: 600
+    
+Response's Content-Length is longer than content.
+
+    X-Return-Header: Content-Length: 6000
+    X-Generate-Random: 1000
+    
+Response's Content-Length is shorter than content.
+
+    X-Return-Header: Content-Length: 1000
+    X-Generate-Random: 6000
+    
+Development
+-----------
+bad-server works by creating an ordered pipeline of functions that all take http.ResponseWriter
+pointers. Functions are placed into the pipeline in this order:
+
+  1. status_code generator
+  2. header generators
+  3. response body generator wrapped in response affectors
+  
+Only one status code generator and response body generator will be derived
+from the headers sent to bad-server. If you include multiple response body
+generators in your header, they will be processed in this order (from `general.go`)
+
+    1. X-Request-Body-As-Response
+    2. X-Generate-Random
+    3. empty string
+  
   
   

@@ -4,6 +4,7 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 )
 
 // float32sEqual compares float1 and float2 and returns if they're
@@ -33,4 +34,37 @@ func getFirstHeaderValue(request *http.Request, header string) string {
 // makeTestRequest constructs a mock http request
 func makeTestRequest() *http.Request {
 	return httptest.NewRequest("GET", "http://localhost", nil)
+}
+
+// parseHeadersWithKeyValues takes all the key=value; pairs within
+// a slice of headerValues and parses them into a map of key: value.
+// duplicate keys will overwrite earlier instances
+// Any values without an = or with an = followed by nothing
+// will be set to an empty string.
+func parseHeadersWithKeyValues(headerValues []string, parseWith string) map[string]string {
+	keyValues := make(map[string]string)
+	for _, valueString := range headerValues {
+		pairs := strings.Split(valueString, parseWith)
+		for _, pair := range pairs {
+			key, value := parseKeyValuePair(pair)
+			keyValues[key] = value
+		}
+	}
+	return keyValues
+}
+
+// parseKeyValuePair takes a string of "key=value", "key", or "key="
+// and returns the parsed key and value (or an empty string)
+// only the first = is used for the split
+func parseKeyValuePair(pair string) (key string, value string) {
+	if pair == "" {
+		return "", ""
+	}
+
+	pairParts := strings.SplitN(pair, "=", 2)
+	if len(pairParts) < 2 {
+		return pairParts[0], ""
+	} else {
+		return pairParts[0], pairParts[1]
+	}
 }

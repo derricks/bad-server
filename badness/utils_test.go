@@ -59,3 +59,57 @@ func TestFirstHeader(test *testing.T) {
 		}
 	}
 }
+
+func TestParseKeyValuePair(test *testing.T) {
+	expectations := map[string][]string{
+		"":        []string{"", ""},
+		"500":     []string{"500", ""},
+		"500=":    []string{"500", ""},
+		"500=x":   []string{"500", "x"},
+		"500=x=y": []string{"500", "x=y"},
+		"=":       []string{"", ""},
+	}
+
+	for input, expect := range expectations {
+		key, value := parseKeyValuePair(input)
+		if key != expect[0] {
+			test.Fatalf("Expected key of %s from %s, got %s", expect[0], input, key)
+		}
+
+		if value != expect[1] {
+			test.Fatalf("Expected value of %s from %s, got %s", expect[1], input, value)
+		}
+	}
+}
+
+type headerParseExpect struct {
+	headerValues []string
+	expectedMap  map[string]string
+}
+
+func TestParseHeadersWithKeyValues(test *testing.T) {
+	expectations := []headerParseExpect{
+		headerParseExpect{[]string{"500"}, map[string]string{"500": ""}},
+		headerParseExpect{[]string{"500=3,200=6"}, map[string]string{"500": "3", "200": "6"}},
+		headerParseExpect{[]string{"500=3", "200=6"}, map[string]string{"500": "3", "200": "6"}},
+		headerParseExpect{[]string{"500=3,200=6", "500=5"}, map[string]string{"500": "5", "200": "6"}},
+	}
+
+	for _, expectation := range expectations {
+		actualMap := parseHeadersWithKeyValues(expectation.headerValues, ",")
+		if len(actualMap) != len(expectation.expectedMap) {
+			test.Fatalf("Expected map %v is a different length than actual map %v", expectation.expectedMap, actualMap)
+		}
+
+		for expectKey, expectValue := range expectation.expectedMap {
+			actualValue, found := actualMap[expectKey]
+			if !found {
+				test.Fatalf("Did not find key %s in %v", expectKey, actualMap)
+			}
+
+			if actualValue != expectValue {
+				test.Fatalf("Expected value %s for key %s but got %s", expectValue, expectKey, actualValue)
+			}
+		}
+	}
+}

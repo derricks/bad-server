@@ -1,6 +1,7 @@
 package badness
 
 import (
+	"fmt"
 	"log"
 	"math/rand"
 	"net/http"
@@ -56,21 +57,23 @@ func buildHistogram(headerValues []string) []statusCodeHistogramEntry {
 
 	var totalProbability float32
 
-	for _, headerValue := range headerValues {
-		for _, histogramValue := range strings.Split(headerValue, ",") {
-			entry, err := parseHistogramHeader(histogramValue)
+	parsedHeaders := parseHeadersWithKeyValues(headerValues, ",")
+	for headerKey, headerValue := range parsedHeaders {
+		// reconstruct the key=value string from the header since that's what
+		// the helper function takes
+		histogramValue := fmt.Sprintf("%s=%s", headerKey, headerValue)
+		entry, err := parseHistogramHeader(histogramValue)
 
-			if err != nil {
-				log.Printf("Skipping bad histogram value %s: %v\n", histogramValue, err)
-				continue
-			}
+		if err != nil {
+			log.Printf("Skipping bad histogram value %s: %v\n", histogramValue, err)
+			continue
+		}
 
-			if float32sEqual(0.0, entry.probability, .1) {
-				zeroProbs = append(zeroProbs, entry)
-			} else {
-				histogram = append(histogram, entry)
-				totalProbability += entry.probability
-			}
+		if float32sEqual(0.0, entry.probability, .1) {
+			zeroProbs = append(zeroProbs, entry)
+		} else {
+			histogram = append(histogram, entry)
+			totalProbability += entry.probability
 		}
 	}
 

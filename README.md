@@ -41,6 +41,11 @@ X-Generate-Random: generate random data for the given number of bytes
 
   * X-Generate-Random: 100 => 100 random bytes are returned
   
+X-Random-Delays: randomly delay sending chunks of data
+
+  * X-Random-Delays: 100 => chunks of data will be sent with up to 100ms delays sprinkled in
+  * X-Random-Delays: 10ns=70.0;100ms => chunks of data will be sent with up to 10ns delays 70% of the time, and up to 100ms for 30% of the time
+  
 Complex Examples
 ----------------
 Combining headers lets you create other types of unexpected behaviors.

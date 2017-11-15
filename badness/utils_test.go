@@ -1,7 +1,9 @@
 package badness
 
 import (
+	"errors"
 	"testing"
+	"time"
 )
 
 func TestEqualFloats(test *testing.T) {
@@ -110,6 +112,28 @@ func TestParseHeadersWithKeyValues(test *testing.T) {
 			if actualValue != expectValue {
 				test.Fatalf("Expected value %s for key %s but got %s", expectValue, expectKey, actualValue)
 			}
+		}
+	}
+}
+
+type stringDurationExpect struct {
+	input  string
+	output time.Duration
+	errorExpectation
+}
+
+func TestStringToDuration(test *testing.T) {
+	expectations := []stringDurationExpect{
+		stringDurationExpect{"300", time.Duration(300) * time.Millisecond, errorExpectation{nil}},
+		stringDurationExpect{"100s", time.Duration(100) * time.Second, errorExpectation{nil}},
+		stringDurationExpect{"invalid", time.Duration(0) * time.Second, errorExpectation{errors.New("duration string invalid")}},
+	}
+	for index, expect := range expectations {
+		duration, err := stringToDuration(expect.input)
+		checkErrorExpectation("invalid", expect.errorExpectation, err, test)
+
+		if expect.output.Nanoseconds() != duration.Nanoseconds() {
+			test.Fatal("Test %d: Duration %v did not equal %v", index, expect.output, duration)
 		}
 	}
 }

@@ -92,7 +92,7 @@ func buildHistogram(headerValues []string) []statusCodeHistogramEntry {
 		return []statusCodeHistogramEntry{}
 	}
 
-  sort.Sort(statusCodeHistogram(histogram))
+	sort.Sort(statusCodeHistogram(histogram))
 	return histogram
 }
 
@@ -125,6 +125,7 @@ func parseHistogramHeader(keyValue string) (statusCodeHistogramEntry, error) {
 }
 
 type statusCodeHistogram []statusCodeHistogramEntry
+
 func (histogram statusCodeHistogram) Len() int {
 	return len(histogram)
 }

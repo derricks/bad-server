@@ -4,7 +4,9 @@ import (
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
+	"time"
 )
 
 // float32sEqual compares float1 and float2 and returns if they're
@@ -67,4 +69,22 @@ func parseKeyValuePair(pair string) (key string, value string) {
 	} else {
 		return pairParts[0], pairParts[1]
 	}
+}
+
+// stringToDuration will convert a string to a duration, including defaulting
+// to milliseconds if it's only numeric
+func stringToDuration(toParse string) (time.Duration, error) {
+	// if it parses as a straight duration, use that
+	duration, durationErr := time.ParseDuration(toParse)
+	if durationErr == nil {
+		return duration, nil
+	}
+
+	millis, intErr := strconv.Atoi(toParse)
+	if intErr == nil {
+		return time.Duration(millis) * time.Millisecond, nil
+	}
+
+	// use the duration error, since it's more useful to the client.
+	return time.Duration(0), durationErr
 }

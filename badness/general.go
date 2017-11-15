@@ -66,8 +66,9 @@ func getBodyGenerator(request *http.Request) io.Reader {
 type responseAffector func(request *http.Request, reader io.Reader) (io.Reader, error)
 
 var headerToAffector = map[string]responseAffector{
-	AddNoise:         getNoiseAffector,
-	PauseBeforeStart: getInitialLatencyAffector,
+	AddNoise:            getNoiseAffector,
+	PauseBeforeStart:    getInitialLatencyAffector,
+	RandomLaggyResponse: getRandomLagginessAffector,
 }
 
 // getResponseAffector uses the http request headers to decorate the given reader

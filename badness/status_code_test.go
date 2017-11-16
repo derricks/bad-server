@@ -57,8 +57,8 @@ type histogramExpect struct {
 func TestHistogramGeneration(test *testing.T) {
 	expectations := []histogramExpect{
 		histogramExpect{[]string{"500"}, []statusCodeHistogramEntry{statusCodeHistogramEntry{500, 100.0}}},
-		histogramExpect{[]string{"500=50", "200=50"}, []statusCodeHistogramEntry{statusCodeHistogramEntry{500, 50.0}, statusCodeHistogramEntry{200, 50.0}}},
-		histogramExpect{[]string{"500=50,200"}, []statusCodeHistogramEntry{statusCodeHistogramEntry{500, 50.0}, statusCodeHistogramEntry{200, 50.0}}},
+		histogramExpect{[]string{"500=60", "200=40"}, []statusCodeHistogramEntry{statusCodeHistogramEntry{200, 40.0}, statusCodeHistogramEntry{500, 60.0}}},
+		histogramExpect{[]string{"500=60,200"}, []statusCodeHistogramEntry{statusCodeHistogramEntry{200, 40.0}, statusCodeHistogramEntry{500, 60.0}}},
 		histogramExpect{[]string{""}, []statusCodeHistogramEntry{}},
 	}
 

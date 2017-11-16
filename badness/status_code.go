@@ -4,6 +4,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -88,6 +89,7 @@ func buildHistogram(headerValues []string) []statusCodeHistogramEntry {
 		return []statusCodeHistogramEntry{}
 	}
 
+  sort.Sort(statusCodeHistogram(histogram))
 	return histogram
 }
 
@@ -117,4 +119,15 @@ func parseHistogramHeader(keyValue string) (statusCodeHistogramEntry, error) {
 		}
 	}
 	return statusCodeHistogramEntry{statusCode: statusCode, probability: float32(probability)}, nil
+}
+
+type statusCodeHistogram []statusCodeHistogramEntry
+func (histogram statusCodeHistogram) Len() int {
+	return len(histogram)
+}
+func (histogram statusCodeHistogram) Swap(left, right int) {
+	histogram[left], histogram[right] = histogram[right], histogram[left]
+}
+func (histogram statusCodeHistogram) Less(left, right int) bool {
+	return histogram[left].probability < histogram[right].probability
 }

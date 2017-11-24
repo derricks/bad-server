@@ -8,17 +8,17 @@ import (
 
 type histogramParseExpect struct {
 	statusCode  int
-	probability float32
+	probability float64
 	errorExpectation
 }
 
-func buildHistogramParseExpect(statusCode int, probability float32, err error) histogramParseExpect {
+func buildHistogramParseExpect(statusCode int, probability float64, err error) histogramParseExpect {
 	return histogramParseExpect{statusCode, probability, errorExpectation{err}}
 }
 
 func TestHistogramEntryParsing(test *testing.T) {
 	expectations := map[string]histogramParseExpect{
-		"500=33.2": buildHistogramParseExpect(500, 33.2, nil),
+		"500=33.2": buildHistogramParseExpect(500, .332, nil),
 
 		"": buildHistogramParseExpect(0, 0.0, errors.New("empty string should yield error")),
 
@@ -42,7 +42,7 @@ func TestHistogramEntryParsing(test *testing.T) {
 			test.Fatalf("Header %s should yield status code of %d, has %d", parseString, expectation.statusCode, entry.statusCode)
 		}
 
-		if !float32sEqual(entry.probability, expectation.probability, .01) {
+		if !float64sEqual(entry.probability, expectation.probability, .01) {
 			test.Fatalf("Header %s should yield probability of %f, has %f", parseString, expectation.probability, entry.probability)
 		}
 
@@ -56,9 +56,9 @@ type histogramExpect struct {
 
 func TestHistogramGeneration(test *testing.T) {
 	expectations := []histogramExpect{
-		histogramExpect{[]string{"500"}, []statusCodeHistogramEntry{statusCodeHistogramEntry{500, 100.0}}},
-		histogramExpect{[]string{"500=60", "200=40"}, []statusCodeHistogramEntry{statusCodeHistogramEntry{200, 40.0}, statusCodeHistogramEntry{500, 60.0}}},
-		histogramExpect{[]string{"500=60,200"}, []statusCodeHistogramEntry{statusCodeHistogramEntry{200, 40.0}, statusCodeHistogramEntry{500, 60.0}}},
+		histogramExpect{[]string{"500"}, []statusCodeHistogramEntry{statusCodeHistogramEntry{500, histogramBucket{1.0}}}},
+		histogramExpect{[]string{"500=60", "200=40"}, []statusCodeHistogramEntry{statusCodeHistogramEntry{200, histogramBucket{.40}}, statusCodeHistogramEntry{500, histogramBucket{.60}}}},
+		histogramExpect{[]string{"500=60,200"}, []statusCodeHistogramEntry{statusCodeHistogramEntry{200, histogramBucket{.40}}, statusCodeHistogramEntry{500, histogramBucket{.60}}}},
 		histogramExpect{[]string{""}, []statusCodeHistogramEntry{}},
 	}
 
@@ -76,7 +76,7 @@ func TestHistogramGeneration(test *testing.T) {
 				test.Fatalf("Histogram item %d should have status code %d but is %d", index, expectedEntry.statusCode, actualEntry.statusCode)
 			}
 
-			if !float32sEqual(expectedEntry.probability, actualEntry.probability, .1) {
+			if !float64sEqual(expectedEntry.probability, actualEntry.probability, .01) {
 				test.Fatalf("Histogram item %d should have probability %f but is %f", index, expectedEntry.probability, actualEntry.probability)
 			}
 

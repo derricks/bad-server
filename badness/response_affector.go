@@ -104,9 +104,9 @@ const RandomLaggyResponse = "X-Random-Delays"
 const lagginessBufferSize = 50
 
 type lagginessRandomizer struct {
-	probability float64
-	from        time.Duration
-	upTo        time.Duration
+	histogramBucket
+	from time.Duration
+	upTo time.Duration
 }
 
 type randomizerSet []lagginessRandomizer
@@ -154,17 +154,16 @@ func (affector randomLagginessAffector) Read(buf []byte) (int, error) {
 // randomizerFromHistogram will use the passed-in random number to find
 // a lagginessRandomizer that meets the criteria
 func (affector randomLagginessAffector) randomizerFromHistogram(random float64) lagginessRandomizer {
-	accumulatedProbability := float64(0.0) // track how many histogram entries we've gone through
-
-	for _, histogramEntry := range affector.histogram {
-		accumulatedProbability += histogramEntry.probability
-		if accumulatedProbability > random {
-			return histogramEntry
-		}
+	// make a slice of histogramBuckets from the lagginessRandomizer slice
+	buckets := make([]histogramBucket, 0)
+	for _, randomizer := range affector.histogram {
+		buckets = append(buckets, randomizer.histogramBucket)
 	}
-
-	// if no match happened, return the last entry
-	return affector.histogram[len(affector.histogram)-1]
+	index := bucketForProbability(random, buckets)
+	if index < 0 {
+		return affector.histogram[len(affector.histogram)-1]
+	}
+	return affector.histogram[index]
 }
 
 // randomDurationBetween takes two durations and returns
@@ -248,5 +247,5 @@ func lagginessRandomizerFromKeyValue(key, value string) lagginessRandomizer {
 		}
 	}
 
-	return lagginessRandomizer{probability / 100.0, fromDuration, toDuration}
+	return lagginessRandomizer{histogramBucket{probability / 100.0}, fromDuration, toDuration}
 }

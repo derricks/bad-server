@@ -145,7 +145,7 @@ func TestFindRandomizerInRandomLatencyAffector(test *testing.T) {
 	durations := []time.Duration{time.Duration(300) * time.Millisecond, time.Duration(1) * time.Second, time.Duration(1) * time.Minute}
 	histogram := make([]lagginessRandomizer, 3)
 	for index, _ := range probabilities {
-		histogram = append(histogram, lagginessRandomizer{probabilities[index], 0, durations[index]})
+		histogram = append(histogram, lagginessRandomizer{histogramBucket{probabilities[index]}, 0, durations[index]})
 	}
 
 	affector := randomLagginessAffector{strings.NewReader("not used"), histogram}
@@ -219,11 +219,11 @@ type randomLagginessExpect struct {
 
 func TestGetRandomLagginesAffector(test *testing.T) {
 	expectations := []randomLagginessExpect{
-		randomLagginessExpect{"1s=20", []lagginessRandomizer{lagginessRandomizer{.2, time.Duration(0), time.Duration(1) * time.Second}}},
+		randomLagginessExpect{"1s=20", []lagginessRandomizer{lagginessRandomizer{histogramBucket{.2}, time.Duration(0), time.Duration(1) * time.Second}}},
 		randomLagginessExpect{"10ms=20,10ms-50ms=30,1s", []lagginessRandomizer{
-			lagginessRandomizer{.2, time.Duration(0), time.Duration(10) * time.Millisecond},
-			lagginessRandomizer{.3, time.Duration(10) * time.Millisecond, time.Duration(20) * time.Millisecond},
-			lagginessRandomizer{.5, time.Duration(0), time.Duration(1) * time.Second},
+			lagginessRandomizer{histogramBucket{.2}, time.Duration(0), time.Duration(10) * time.Millisecond},
+			lagginessRandomizer{histogramBucket{.3}, time.Duration(10) * time.Millisecond, time.Duration(20) * time.Millisecond},
+			lagginessRandomizer{histogramBucket{.5}, time.Duration(0), time.Duration(1) * time.Second},
 		},
 		},
 	}

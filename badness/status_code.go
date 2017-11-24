@@ -20,8 +20,8 @@ const CodeByHistogram = "X-Response-Code-Histogram"
 // bad request will be returned instead
 func generateHistogramStatusCode(request *http.Request) ResponseHandler {
 
-	histogram := buildHistogram(request.Header[CodeByHistogram])
-	if len(histogram) == 0 {
+	histogramItems := buildHistogram(request.Header[CodeByHistogram])
+	if len(histogramItems) == 0 {
 		return func(response http.ResponseWriter) error {
 			response.WriteHeader(http.StatusBadRequest)
 			return nil
@@ -29,18 +29,14 @@ func generateHistogramStatusCode(request *http.Request) ResponseHandler {
 	}
 
 	return func(response http.ResponseWriter) error {
-		probability := rand.Float32() * float32(100.0)
-		entryCumulative := float32(0.0)
-
-		// go through each entry. if the cumulative entry
-		// is greater than the random probability
-		// use that as the status code
-		for _, entry := range histogram {
-			entryCumulative += entry.probability
-			if entryCumulative > probability {
-				response.WriteHeader(entry.statusCode)
-				return nil
-			}
+		buckets := statusCodeHistogramToHistogramBuckets(histogramItems)
+		random := rand.Float64()
+		bucket := bucketForProbability(random, buckets)
+		if bucket == bucketNotFound {
+			log.Printf("Could not find any bucket for %f. Do the probabilities add up to 1?", random)
+			response.WriteHeader(http.StatusBadRequest)
+		} else {
+			response.WriteHeader(histogramItems[bucket].statusCode)
 		}
 		return nil
 	}
@@ -55,7 +51,7 @@ func buildHistogram(headerValues []string) []statusCodeHistogramEntry {
 	// their probabilities will be filled in afterwards
 	zeroProbs := make([]statusCodeHistogramEntry, 0)
 
-	var totalProbability float32
+	var totalProbability float64
 
 	parsedHeaders := parseHeadersWithKeyValues(headerValues, ",")
 	for headerKey, headerValue := range parsedHeaders {
@@ -69,7 +65,7 @@ func buildHistogram(headerValues []string) []statusCodeHistogramEntry {
 			continue
 		}
 
-		if float32sEqual(0.0, entry.probability, .1) {
+		if float64sEqual(0.0, entry.probability, .1) {
 			zeroProbs = append(zeroProbs, entry)
 		} else {
 			histogram = append(histogram, entry)
@@ -79,7 +75,7 @@ func buildHistogram(headerValues []string) []statusCodeHistogramEntry {
 
 	if len(zeroProbs) > 0 {
 		// fill in entries with 0 probabilities
-		perEmptyProbability := (float32(100.0) - totalProbability) / float32(len(zeroProbs))
+		perEmptyProbability := (float64(1.0) - totalProbability) / float64(len(zeroProbs))
 		for _, entry := range zeroProbs {
 			entry.probability = perEmptyProbability
 			histogram = append(histogram, entry)
@@ -87,8 +83,8 @@ func buildHistogram(headerValues []string) []statusCodeHistogramEntry {
 		}
 	}
 
-	if !float32sEqual(100.0, totalProbability, .1) {
-		log.Printf("Probabilities do not add up to 100: %f\n", totalProbability)
+	if !float64sEqual(1.0, totalProbability, .1) {
+		log.Printf("Probabilities do not add up to 1: %f\n", totalProbability)
 		return []statusCodeHistogramEntry{}
 	}
 
@@ -96,9 +92,21 @@ func buildHistogram(headerValues []string) []statusCodeHistogramEntry {
 	return histogram
 }
 
+// statusCodeHistogramToHistogramBuckets converts a slice
+// of statusCodeHistogramEntry structs to a slice of
+// histogramBucket structs. This is to get around go's
+// type restrictions.
+func statusCodeHistogramToHistogramBuckets(statusCodeEntries []statusCodeHistogramEntry) []histogramBucket {
+	returnSlice := make([]histogramBucket, 0)
+	for _, statusCodeEntry := range statusCodeEntries {
+		returnSlice = append(returnSlice, statusCodeEntry.histogramBucket)
+	}
+	return returnSlice
+}
+
 type statusCodeHistogramEntry struct {
-	statusCode  int
-	probability float32
+	statusCode int
+	histogramBucket
 }
 
 // parseHistogramHeader converts a key=value pair to a histogram entry.
@@ -107,21 +115,22 @@ type statusCodeHistogramEntry struct {
 // an error. If value can't be parsed as a float, the value will
 // be set to 0
 func parseHistogramHeader(keyValue string) (statusCodeHistogramEntry, error) {
+	emptyEntry := statusCodeHistogramEntry{0, histogramBucket{0.0}}
 	keyValueFields := strings.Split(keyValue, "=")
 
 	statusCode, err := strconv.Atoi(keyValueFields[0])
 	if err != nil {
-		return statusCodeHistogramEntry{0, 0.0}, err
+		return emptyEntry, err
 	}
 
 	probability := 0.0
 	if len(keyValueFields) > 1 && keyValueFields[1] != "" {
-		probability, err = strconv.ParseFloat(keyValueFields[1], 32)
+		probability, err = strconv.ParseFloat(keyValueFields[1], 64)
 		if err != nil {
-			return statusCodeHistogramEntry{0, 0.0}, err
+			return emptyEntry, err
 		}
 	}
-	return statusCodeHistogramEntry{statusCode: statusCode, probability: float32(probability)}, nil
+	return statusCodeHistogramEntry{statusCode, histogramBucket{probability / 100.0}}, nil
 }
 
 type statusCodeHistogram []statusCodeHistogramEntry

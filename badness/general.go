@@ -1,9 +1,11 @@
 package badness
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -57,10 +59,64 @@ func getBodyGenerator(request *http.Request) io.Reader {
 			return strings.NewReader("")
 		}
 		return newRandomBodyGenerator(bodySize)
+	} else if requestHasHeader(request, RandomJson) {
+		// gather up all the values for the header into one string
+		allHeaderValues := request.Header[RandomJson]
+		templateInput, err := normalizeJsonTemplateParameters(allHeaderValues)
+
+		var generator jsonElementGenerator
+		if err != nil {
+			generator = newErrorGenerator(fmt.Sprintf("Could not process input %v", err))
+		} else {
+			generator, err = createJsonTemplate(templateInput)
+			if err != nil {
+				generator = newErrorGenerator(fmt.Sprintf("Could not parse input for generator %v", err))
+			}
+		}
+
+		reader, writer := io.Pipe()
+		go func() {
+			generator.generate(writer)
+			writer.Close()
+		}()
+		return reader
 	} else {
 		return strings.NewReader("")
 	}
+}
 
+const responseTemplateKey = "response_template="
+
+// normalizeJsonTemplateParameters ensures that the X-Random-Json header values
+// are laid out into the right format for being parsed by the json_template package
+// it returns an error if there's not a "response_template" parameter
+func normalizeJsonTemplateParameters(headerValues []string) (string, error) {
+	rawTemplateString := strings.Join(headerValues, ";")
+	// split them apart for sorting
+	rawFields := strings.Split(rawTemplateString, ";")
+	sort.Sort(templateDefinitions(rawFields))
+
+	if !strings.HasPrefix(rawFields[0], responseTemplateKey) {
+		return "", fmt.Errorf("No response_template key in header")
+	}
+
+	templateInput := strings.Join(rawFields, ";")
+	// and then remove the response_template key to prevent it from affecting the parser
+	templateInput = strings.Replace(templateInput, "response_template=", "", 1)
+	return templateInput, nil
+}
+
+type templateDefinitions []string
+
+func (defs templateDefinitions) Len() int {
+	return len(defs)
+}
+func (defs templateDefinitions) Swap(a, b int) {
+	defs[a], defs[b] = defs[b], defs[a]
+}
+func (defs templateDefinitions) Less(a, b int) bool {
+	// if a starts with "response_template=", it is less
+	return strings.HasPrefix(defs[a], "response_template=")
 }
 
 type responseAffector func(request *http.Request, reader io.Reader) (io.Reader, error)

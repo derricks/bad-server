@@ -13,6 +13,7 @@ header in a request. Exceptions to this include:
 
   * X-Response-Code-Histogram
   * X-Return-Header
+  * X-Random-Json
   
 Headers
 -------
@@ -45,6 +46,26 @@ X-Random-Delays: randomly delay sending chunks of data
 
   * X-Random-Delays: 100 => chunks of data will be sent with up to 100ms delays sprinkled in
   * X-Random-Delays: 10ns=70.0;100ms => chunks of data will be sent with up to 10ns delays 70% of the time, and up to 100ms for 30% of the time
+  
+X-Random-Json: send random but structured JSON to the client to simulate unexpectedly large payloads
+
+  * X-Random-Json: response_template=[string]:100 => sends an array of 100 strings
+  * X-Random-Json: response_template=[returnObject]:100;returnObject=id/int,name/string => send 100 objects that have a numeric ID field and a string name field
+  * X-Random-Json: response_template=[returnObject]:100;returnObject=author/authorObject;authorObject=id/int,name/string => send 100 records where each one will have an author key that will in turn be an object with an id and name
+  * X-Random-Json: response_template=titlesContainer;titlesContainer=titles/[string]:100 => return an object that contains a field named titles that is 100 random strings
+  
+More on X-Random-Json
+---------------------
+Here are the primitive data types you can use for a field:
+
+  * string
+  * int
+  * float
+  * bool
+  * increment - a numeric field that increases in each record
+  * <object name> - another object defined within the same header
+  
+Each of these can have [] placed around them to create an array of that type. Arrays are 10,000 items unless you specify a length with ":N" after the array. The "root" item must be identified with "response_template="
   
 Complex Examples
 ----------------
@@ -80,7 +101,8 @@ generators in your header, they will be processed in this order (from `general.g
 
     1. X-Request-Body-As-Response
     2. X-Generate-Random
-    3. empty string
+    3. X-Random-Json
+    4. empty string
   
   
   

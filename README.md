@@ -51,7 +51,7 @@ X-Proxy-To-Host: send the exact same request to the specified host and feed the 
 Note that other header and request generators will be ignored if this is set. 
 However, headers that affect the transmission will still be used.
 
-  * X-Proxy-To-Host: www.google.com => send the same url that triggered this to www.google.com and retransmit the response
+  * X-Proxy-To-Host: http://www.google.com => send the same url that triggered this to www.google.com and retransmit the response
     
 X-Random-Json: send random but structured JSON to the client to simulate unexpectedly large payloads
 

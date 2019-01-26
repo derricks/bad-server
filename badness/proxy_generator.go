@@ -6,34 +6,84 @@ package badness
 // fact.
 import (
   "fmt"
+  "io"
   "net/http"
   "net/url"
+  "strings"
 )
 
 const ProxyRequest = "X-Proxy-To-Host"
 
-type proxyRequest struct {
-  newHost string
-  http.Request
+type proxiedResponse struct {
+  response *http.Response
+  errorText string
 }
 
-// buidlProxyRequest uses the input request as a template to use for making
-// a request to another service, and then returns a ResponseHandler that will
-// write the response back to the client.
-// The incoming request's ProxyRequest header is used to determine the host to talk to,
-// but otherwise everything about the request is kept the same.
-func buildProxyRequest(request *http.Request) ResponseHandler {
+// buildHeaderGenerator uses the cached response to generate a ResponseHandler
+// function that can be used in the response pipeline
+func (proxy proxiedResponse) buildProxyHeaderGenerator() ResponseHandler {
+  return func(response http.ResponseWriter) error {
+    if proxy.errorText != "" {
+      response.WriteHeader(http.StatusBadRequest)
+    } else {
+      for header, values := range proxy.response.Header {
+        response.Header()[header] = values
+      }
+      response.WriteHeader(proxy.response.StatusCode)
+    }
+    // nothing in this part returns an error
+    return nil
+  }
+}
+
+// getReader returns the Body of the response.
+func (proxy proxiedResponse) getProxyReader() io.Reader {
+  if proxy.errorText == "" {
+    return proxy.response.Body    
+  } else {
+    return strings.NewReader(proxy.errorText)
+  }
+}
+
+// this ResponseHandler is put into the pipeline to ensure the response body
+// is closed after all the response affectors come into play
+func (proxy proxiedResponse) buildProxyCloser() ResponseHandler {
+  return func(response http.ResponseWriter) error {
+    if proxy.errorText == "" {
+      proxy.response.Body.Close()
+    }
+    return nil
+  }
+}
+
+// buildProxyResponse uses the input request as a template to use for making
+// a request to another service, and then returns a proxiedResponse object that has ResponseHandlers
+// for the various steps in the pipeline
+func buildProxyResponse(request *http.Request) *proxiedResponse {
   newHost := getFirstHeaderValue(request, ProxyRequest)
   url, err := urlFromHostAndUrl(newHost, request.URL)
   if err != nil {
-    return generateBadResponseHandler(fmt.Sprintf("Could not calculate URL: %v", err  ))
-    // return a 400 and explanatory text (and a test)
+    return &proxiedResponse{&http.Response{}, fmt.Sprintf("Could not calculate URL: %v", err )}
   }
-
-  // given the url, return a function that binds the url to make a request
-  // and pipes the response from the server to the client of this program
-  return func(_ http.ResponseWriter) error {return nil}
+  
+  newRequest, err := http.NewRequest(request.Method, url.String(), request.Body)
+  if err != nil {
+    return &proxiedResponse{&http.Response{}, fmt.Sprintf("%v", err)}
+  }
+    
+  for header, values := range request.Header {
+    newRequest.Header[header] = values
+  }
+  newRequest.ContentLength = request.ContentLength
+  
+  client := &http.Client{}
+  response, err := client.Do(newRequest)
+  if err != nil {
+    return &proxiedResponse{&http.Response{}, fmt.Sprintf("%v", err)}
+  }
+  return &proxiedResponse{response, ""}
 }
+
 
 // urlFromHostAndUrl constructs a new URL by overlaying a parsed URL based on
 // newHost onto oldUrl. For instance, if the newHost is https://abc.com,

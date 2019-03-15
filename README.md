@@ -47,6 +47,12 @@ X-Random-Delays: randomly delay sending chunks of data
   * X-Random-Delays: 100 => chunks of data will be sent with up to 100ms delays sprinkled in
   * X-Random-Delays: 10ns=70.0;100ms => chunks of data will be sent with up to 10ns delays 70% of the time, and up to 100ms for 30% of the time
   
+X-Proxy-To-Host: send the exact same request to the specified host and feed the response to the client.
+Note that other header and request generators will be ignored if this is set. 
+However, headers that affect the transmission will still be used.
+
+  * X-Proxy-To-Host: http://www.google.com => send the same url that triggered this to www.google.com and retransmit the response
+    
 X-Random-Json: send random but structured JSON to the client to simulate unexpectedly large payloads
 
   * X-Random-Json: response_template=[string]:100 => sends an array of 100 strings

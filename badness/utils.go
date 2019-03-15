@@ -20,6 +20,15 @@ func float64sEqual(float1, float2, tolerance float64) bool {
 	return math.Abs(float2-float1) < tolerance
 }
 
+// generate a ResponseHandler that generates a 400 error with the text in the message
+func generateBadResponseHandler(message string) ResponseHandler {
+	return func(response http.ResponseWriter) error {
+		response.WriteHeader(http.StatusBadRequest)
+		_, err := response.Write([]byte(message))
+		return err
+	}
+}
+
 // getFirstHeaderValue returns the first value in the
 // slice of strings tied to a header in request
 func getFirstHeaderValue(request *http.Request, header string) string {
@@ -87,4 +96,15 @@ func stringToDuration(toParse string) (time.Duration, error) {
 
 	// use the duration error, since it's more useful to the client.
 	return time.Duration(0), durationErr
+}
+
+// anyAreNil dtermines if any of the passed-in objects are nil. Returns true
+// if at least one is, false otherwise.
+func anyAreNil(items ...interface{}) bool {
+	for _, item := range items {
+		if item == nil {
+			return true
+		}
+	}
+	return false
 }

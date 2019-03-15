@@ -2,6 +2,7 @@ package badness
 
 import (
 	"errors"
+	"net/http/httptest"
 	"testing"
 	"time"
 )
@@ -27,6 +28,21 @@ func TestEqualFloat64s(test *testing.T) {
 func TestUnequalFloat64ss(test *testing.T) {
 	if float64sEqual(3.3, 3.4, .1) {
 		test.Fatal("3.3 and 3.4 should not be equal but are")
+	}
+}
+
+func TestGenerateBadRequestHandler(test *testing.T) {
+	testString := "This is a test of the bad response handler"
+	recorder := httptest.NewRecorder()
+	handler := generateBadResponseHandler(testString)
+	err := handler(recorder)
+	if err != nil {
+		test.Fatalf("Unexpected error: %v", err)
+	}
+	response := recorder.Result()
+
+	if response.StatusCode != 400 {
+		test.Fatalf("Status code should be 400. Was %d", response.StatusCode)
 	}
 }
 
@@ -133,7 +149,26 @@ func TestStringToDuration(test *testing.T) {
 		checkErrorExpectation("invalid", expect.errorExpectation, err, test)
 
 		if expect.output.Nanoseconds() != duration.Nanoseconds() {
-			test.Fatal("Test %d: Duration %v did not equal %v", index, expect.output, duration)
+			test.Fatalf("Test %d: Duration %v did not equal %v", index, expect.output, duration)
+		}
+	}
+}
+
+type anyAreNilTest struct {
+	input       []interface{}
+	expectation bool
+}
+
+func TestAnyAreNil(test *testing.T) {
+	expectations := []anyAreNilTest{
+		anyAreNilTest{[]interface{}{"test", nil}, true},
+		anyAreNilTest{[]interface{}{"test"}, false},
+	}
+
+	for index, expect := range expectations {
+		actual := anyAreNil(expect.input...)
+		if actual != expect.expectation {
+			test.Fatalf("Test %d: should have been %v but was %v", index, expect.expectation, actual)
 		}
 	}
 }

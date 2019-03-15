@@ -40,10 +40,10 @@ func TestGenerateBadRequestHandler(test *testing.T) {
 		test.Fatalf("Unexpected error: %v", err)
 	}
 	response := recorder.Result()
-	
-  if response.StatusCode != 400 {
+
+	if response.StatusCode != 400 {
 		test.Fatalf("Status code should be 400. Was %d", response.StatusCode)
-  }	
+	}
 }
 
 const fakeHeader = "X-Test-Header"
@@ -155,19 +155,18 @@ func TestStringToDuration(test *testing.T) {
 }
 
 type anyAreNilTest struct {
-	input []interface{}
+	input       []interface{}
 	expectation bool
 }
 
 func TestAnyAreNil(test *testing.T) {
-	expectations := []anyAreNilTest {
+	expectations := []anyAreNilTest{
 		anyAreNilTest{[]interface{}{"test", nil}, true},
 		anyAreNilTest{[]interface{}{"test"}, false},
-		
 	}
-	
+
 	for index, expect := range expectations {
-	  actual := anyAreNil(expect.input... )
+		actual := anyAreNil(expect.input...)
 		if actual != expect.expectation {
 			test.Fatalf("Test %d: should have been %v but was %v", index, expect.expectation, actual)
 		}

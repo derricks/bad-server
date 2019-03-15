@@ -18,20 +18,20 @@ type ResponseHandler func(response http.ResponseWriter) error
 func GetResponsePipeline(request *http.Request) []ResponseHandler {
 	pipeline := make([]ResponseHandler, 0)
 
-  // proxies circumvent the normal header/body building portions of the pipeline because
+	// proxies circumvent the normal header/body building portions of the pipeline because
 	// it pre-empts other headers and follows a different path
 	if requestHasHeader(request, ProxyRequest) {
 		proxy := buildProxyResponse(request)
 		pipeline = append(pipeline, proxy.buildProxyHeaderGenerator())
-		
+
 		affector, err := getResponseAffector(request, proxy.getProxyReader())
 		if err != nil {
 			pipeline = []ResponseHandler{generateBadResponseHandler(fmt.Sprintf("Could not get affector: %v", err))}
 			return pipeline
-		}		
+		}
 		pipeline = append(pipeline, buildBodyGenerator(affector))
 		pipeline = append(pipeline, proxy.buildProxyCloser())
-		
+
 	} else {
 		pipeline = append(pipeline, getHeaderGenerators(request)...)
 		// generators that generate status codes go first

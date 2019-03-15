@@ -29,7 +29,6 @@ func generateBadResponseHandler(message string) ResponseHandler {
 	}
 }
 
-
 // getFirstHeaderValue returns the first value in the
 // slice of strings tied to a header in request
 func getFirstHeaderValue(request *http.Request, header string) string {

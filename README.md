@@ -92,6 +92,15 @@ Response's Content-Length is shorter than content.
     X-Return-Header: Content-Length: 1000
     X-Generate-Random: 6000
     
+Administration
+-------------------------
+The server also has an admin port that you can use for certain global operations
+
+  * /headers: 
+    * POST all the headers in the request will be used as defaults that are merged into incoming requests on the main port
+    * GET will give you the current set of default headers as headers in the response
+    * DELETE will clear out any defaults
+    
 Development
 -----------
 bad-server works by creating an ordered pipeline of functions that all take http.ResponseWriter

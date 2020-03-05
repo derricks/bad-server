@@ -2,6 +2,8 @@ package json_template
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 )
 
 // ast for json_template code. A template is defined by a series of
@@ -67,6 +69,43 @@ type KeyValueDataType struct {
 
 func (keyValue KeyValueDataType) TokenLiteral() string {
 	return fmt.Sprintf("%s: %s", keyValue.Key, keyValue.Value.TokenLiteral())
+}
+
+type EnumStringDataType struct {
+	DataDeclaration
+	Values []string
+}
+
+func (enumString EnumStringDataType) TokenLiteral() string {
+	return fmt.Sprintf("(%s)", strings.Join(enumString.Values, "|"))
+}
+
+type EnumIntDataType struct {
+	DataDeclaration
+	Values []int
+}
+
+func (enumInt EnumIntDataType) TokenLiteral() string {
+	stringValues := make([]string, 0, len(enumInt.Values))
+	for _, intValue := range enumInt.Values {
+		stringValues = append(stringValues, strconv.Itoa(intValue))
+	}
+
+	return fmt.Sprintf("(%s)", strings.Join(stringValues, "|"))
+}
+
+type EnumFloatDataType struct {
+	DataDeclaration
+	Values []float64
+}
+
+func (enumFloat EnumFloatDataType) TokenLiteral() string {
+	stringValues := make([]string, 0, len(enumFloat.Values))
+	for _, floatValue := range enumFloat.Values {
+		stringValues = append(stringValues, fmt.Sprintf("%v", floatValue))
+	}
+
+	return fmt.Sprintf("(%s)", strings.Join(stringValues, "|"))
 }
 
 type ObjectDataType struct {

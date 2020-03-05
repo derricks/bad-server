@@ -10,7 +10,7 @@ type tokenExpect struct {
 }
 
 func TestNextToken(test *testing.T) {
-	input := "=:,/[];string;bookcase;increment;int;bool;1234"
+	input := "=:,/[];string;bookcase;increment;int;bool;1234|"
 
 	expects := []tokenExpect{
 		{EQUAL, "="},
@@ -31,6 +31,7 @@ func TestNextToken(test *testing.T) {
 		{BOOL_DATA_TYPE, "bool"},
 		{SEMICOLON, ";"},
 		{NUMBER, "1234"},
+		{PIPE, "|"},
 	}
 	lexer := newLexer(input)
 

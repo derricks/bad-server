@@ -54,6 +54,10 @@ func generatorFromDataDeclaration(template *json_template.Template, declaration 
 			return nil, fmt.Errorf("Unknown data type: %s", key)
 		}
 		return objectGeneratorFromDataType(template, object.(json_template.ObjectDataType))
+	case json_template.EnumStringDataType:
+		return enumGeneratorFromStringEnumDataType(declaration.(json_template.EnumStringDataType))
+	case json_template.EnumIntDataType:
+		return enumGeneratorFromIntEnumDataType(declaration.(json_template.EnumIntDataType))
 	default:
 		return nil, fmt.Errorf("Unknown type: %v", declaration)
 	}
@@ -100,6 +104,38 @@ func primitiveGeneratorFromDataType(declaration json_template.PrimitiveDataType)
 	default:
 		return nil, fmt.Errorf("Unknown primitive type: %s", declaration.TokenLiteral())
 	}
+}
+
+func enumGeneratorFromStringEnumDataType(declaration json_template.EnumStringDataType) (jsonElementGenerator, error) {
+	return newStringFromSetGenerator(declaration.Values), nil
+}
+
+func enumGeneratorFromIntEnumDataType(declaration json_template.EnumIntDataType) (jsonElementGenerator, error) {
+	return newIntFromSetGenerator(declaration.Values), nil
+}
+
+type stringFromSetGenerator struct {
+	values []string
+}
+func (generator stringFromSetGenerator) generate(writer io.Writer) (int, error) {
+	index := rand.Intn(len(generator.values))
+	return newFixedStringGenerator(generator.values[index]).generate(writer)
+}
+
+func newStringFromSetGenerator(values []string) jsonElementGenerator{
+	return &stringFromSetGenerator{values}
+}
+
+type intFromSetGenerator struct {
+	values []int
+}
+func (generator intFromSetGenerator) generate(writer io.Writer) (int, error) {
+	index := rand.Intn(len(generator.values))
+	return newFixedIntGenerator(generator.values[index]).generate(writer)
+}
+
+func newIntFromSetGenerator(values []int) jsonElementGenerator{
+	return &intFromSetGenerator{values}
 }
 
 // writeGeneratorsInList concatenates the output of the generators into the writer with the given character
@@ -214,12 +250,26 @@ type intGenerator struct {
 
 func (generator intGenerator) generate(writer io.Writer) (int, error) {
 	intToWrite := rand.Intn(generator.maxNumber)
-	intString := strconv.Itoa(intToWrite)
-	return writer.Write([]byte(intString))
+	nestedGenerator := fixedIntGenerator{intToWrite}
+	return nestedGenerator.generate(writer)
 }
 
 func newIntGenerator(maxNum int) jsonElementGenerator {
 	return intGenerator{maxNum}
+}
+
+// ---------- generates a fixed int
+type fixedIntGenerator struct {
+	number int
+}
+
+func (generator fixedIntGenerator) generate(writer io.Writer) (int, error) {
+	intString := strconv.Itoa(generator.number)
+	return writer.Write([]byte(intString))
+}
+
+func newFixedIntGenerator(number int) fixedIntGenerator {
+	return fixedIntGenerator{number}
 }
 
 // ---------- increment generator. starting at a value, counts up

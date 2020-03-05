@@ -38,6 +38,8 @@ const (
 
 	COMMA     = ","
 	SEMICOLON = ";"
+
+	PIPE = "|"
 )
 
 var dataTypes = map[string]TokenType{

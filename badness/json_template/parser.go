@@ -1,6 +1,7 @@
 package json_template
 
 import (
+	"errors"
 	"fmt"
 	"strconv"
 )
@@ -11,6 +12,7 @@ type Parser struct {
 	lexer     *Lexer
 	curToken  Token
 	peekToken Token
+	debug     bool
 }
 
 // NewParserWithString simplifies some of the work of creating a new parser
@@ -31,6 +33,9 @@ func NewParser(lexer *Lexer) *Parser {
 func (parser *Parser) nextToken() {
 	parser.curToken = parser.peekToken
 	parser.peekToken = parser.lexer.NextToken()
+	if parser.debug {
+		fmt.Printf("curToken: %v, peekToken: %v\n", parser.curToken.Literal, parser.peekToken.Literal)
+	}
 }
 
 func (parser *Parser) ParseTemplate() (*Template, error) {
@@ -40,7 +45,15 @@ func (parser *Parser) ParseTemplate() (*Template, error) {
 	for parser.curToken.Type != EOF {
 		if isDataType(parser.curToken.Literal) || parser.curToken.Type == KEY_NAME {
 
-			if parser.curToken.Type == KEY_NAME && parser.peekToken.Type == EQUAL {
+			if isDataType(parser.curToken.Literal) && parser.peekToken.Type == PIPE {
+				// parseRawString will figure out if the string under the parser is an enum
+				enum, err := parser.parseRawString()
+				if err != nil {
+					return nil, err
+				}
+				template.addDataDeclaration(enum)
+
+			} else if parser.curToken.Type == KEY_NAME && parser.peekToken.Type == EQUAL {
 				// this defines a custom object
 				objectName := parser.curToken.Literal
 				parser.nextToken()
@@ -52,6 +65,7 @@ func (parser *Parser) ParseTemplate() (*Template, error) {
 				template.addCustomType(objectName, objectDeclaration)
 
 			} else {
+				// either a data type as is or an object name
 				dataDeclaration, err := parser.parseRawString()
 				if err != nil {
 					return nil, err
@@ -60,17 +74,19 @@ func (parser *Parser) ParseTemplate() (*Template, error) {
 			}
 
 		} else if parser.curToken.Type == LEFT_BRACKET {
+			// an array
 			dataDeclaration, err := parser.parseArray()
 			if err != nil {
 				return nil, err
 			}
 			template.addDataDeclaration(dataDeclaration)
 		} else if parser.curToken.Type == SEMICOLON {
+			// proceed
 			parser.nextToken()
 			continue
 		} else {
-      return nil, fmt.Errorf("Unexpected character at position %d: %v", parser.lexer.position, parser.curToken)
-    }
+			return nil, fmt.Errorf("Unexpected character at position %d: %v", parser.lexer.position, parser.curToken)
+		}
 
 		if err := parser.assertPeekTypeOneOf([]TokenType{SEMICOLON, EOF}); err != nil {
 			return nil, err
@@ -81,9 +97,75 @@ func (parser *Parser) ParseTemplate() (*Template, error) {
 	return &template, nil
 }
 
+// parses enum values into the appropriate Enum*DataType
+func (parser *Parser) parseEnum(dataType string, stringValues []string) (DataDeclaration, error) {
+	// depending on the data type, create the appropriate Enum*DataType struct
+	switch dataType {
+	case "string":
+		enum := EnumStringDataType{}
+		enum.Values = stringValues
+		return enum, nil
+	case "int":
+		enum := EnumIntDataType{}
+		enumValueInts := make([]int, 0, len(stringValues))
+		for _, curString := range stringValues {
+			intValue, err := strconv.Atoi(curString)
+			if err != nil {
+				return nil, errors.New(fmt.Sprintf("Invalid number in int enum: %v", curString))
+			} else {
+				enumValueInts = append(enumValueInts, intValue)
+			}
+		}
+		enum.Values = enumValueInts
+		return enum, nil
+	case "float":
+		enum := EnumFloatDataType{}
+		enumValueFloats := make([]float64, 0, len(stringValues))
+		for _, curString := range stringValues {
+			floatValue, err := strconv.ParseFloat(curString, 64)
+			if err != nil {
+				return nil, errors.New(fmt.Sprintf("Invalid number in float enum: %v", curString))
+			} else {
+				enumValueFloats = append(enumValueFloats, floatValue)
+			}
+		}
+		return enum, nil
+	default:
+		// unlikely, given we have logic above ensuring it's a data type
+		return nil, errors.New(fmt.Sprintf("Unrecognized data type: %v", dataType))
+	}
+}
+
+// pulls enum string values out of a string by iterating on tokens and commas. It assumes
+// the parser is sitting on the |
+func (parser *Parser) extractEnumData() []string {
+	enumValues := make([]string, 0)
+
+	// we need to use KEY_NAME because we don't have another term for an arbitrary string
+	for parser.peekToken.Type == COMMA || parser.peekToken.Type == KEY_NAME || parser.peekToken.Type == NUMBER {
+		parser.nextToken() // advances
+		if parser.curToken.Type != COMMA {
+			enumValues = append(enumValues, parser.curToken.Literal)
+		}
+	}
+	return enumValues
+
+}
+
 // parses a string such as either "string" or "other key name"
 func (parser *Parser) parseRawString() (DataDeclaration, error) {
 	if isDataType(parser.curToken.Literal) {
+
+		if parser.peekToken.Type == PIPE {
+			dataType := parser.curToken.Literal
+			parser.nextToken()
+			if err := parser.assertPeekTypeOneOf([]TokenType{KEY_NAME, NUMBER}); err != nil {
+				return nil, errors.New(fmt.Sprintf("No values found for enum"))
+			}
+			enumValues := parser.extractEnumData()
+			return parser.parseEnum(dataType, enumValues)
+		}
+
 		return PrimitiveDataType{Literal: parser.curToken.Literal}, nil
 	} else {
 		return KeyNameDataType{Literal: parser.curToken.Literal}, nil
@@ -99,6 +181,7 @@ func (parser *Parser) parseArray() (DataDeclaration, error) {
 	parser.nextToken()
 
 	// figure out the nested data declaration
+	// note that parseRawString will return an enum type if that's what it is
 	dataDeclaration, err := parser.parseRawString()
 	if err != nil {
 		return nil, err
@@ -106,7 +189,7 @@ func (parser *Parser) parseArray() (DataDeclaration, error) {
 	array.NestedType = dataDeclaration
 
 	// make sure there's an ] coming up
-	if err = parser.assertPeekType(RIGHT_BRACKET); err != nil {
+	if err = parser.assertPeekTypeOneOf([]TokenType{RIGHT_BRACKET}); err != nil {
 		return nil, err
 	}
 

@@ -65,6 +65,8 @@ func TestTokenLiterals(test *testing.T) {
 		{"[string]:100", "[string]:100"},
 		{"book=title/string", "{title: string}"},
 		{"book=title/string,pages/[string]", "{title: string, pages: [string]:10000}"},
+		{"[string|a,b,c]", "[(a|b|c)]:10000"},
+		{"int|1,2,3", "(1|2|3)"},
 	}
 
 	for testNumber, testCase := range tests {
@@ -76,7 +78,7 @@ func TestTokenLiterals(test *testing.T) {
 		}
 
 		if len(template.Declarations) == 0 {
-			test.Errorf("Test case %d: Template is empty")
+			test.Errorf("Test case %d: Template is empty", testNumber)
 		} else {
 			output := template.Declarations[0].TokenLiteral()
 			if testCase.expected != output {
@@ -121,6 +123,8 @@ func TestParseErrors(test *testing.T) {
 		"book=title",
 		"book=title/string/isbn/string",
 		"book=pages/[page]:100;%;page=text/string",
+		"int|1,a,3",
+		"int|",
 	}
 
 	for testNumber, testCase := range tests {
@@ -129,6 +133,22 @@ func TestParseErrors(test *testing.T) {
 		_, err := parser.ParseTemplate()
 		if err == nil {
 			test.Errorf("Test %d (%s) should have produced an error but did not", testNumber, testCase)
+		}
+	}
+}
+
+func TestExtractEnumValues(test *testing.T) {
+	testString := "|1,a,c"
+	parser := NewParserWithString(testString)
+	values := parser.extractEnumData()
+	if len(values) != 3 {
+		test.Errorf("Expected 3 strings but got %v", len(values))
+	}
+
+	expectedValues := []string{"1", "a", "c"}
+	for index, extractedString := range values {
+		if expectedValues[index] != extractedString {
+			test.Errorf("Expected string %v but got %v", expectedValues[index], extractedString)
 		}
 	}
 }

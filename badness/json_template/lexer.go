@@ -43,6 +43,8 @@ func (lexer *Lexer) NextToken() Token {
 		token = newToken(COLON, lexer.ch)
 	case ',':
 		token = newToken(COMMA, lexer.ch)
+	case '|':
+		token = newToken(PIPE, lexer.ch)
 	default:
 		if isLetter(lexer.ch) {
 			fullString := lexer.readString()

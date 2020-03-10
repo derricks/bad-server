@@ -26,8 +26,8 @@ func TestJsonElementGeneration(test *testing.T) {
 		jsonElementExpectation{newArrayGenerator(2, newIncrementGenerator(1)), "\\[1,2\\]"},
 		jsonElementExpectation{newObjectGenerator([]keyValueGenerator{newKeyValueGenerator("key1", newIntGenerator(100)).(keyValueGenerator), newKeyValueGenerator("key2", newFixedStringGenerator("value")).(keyValueGenerator)}), "\\{\"key1\":[0-9]+,\"key2\":\"value\"}"},
 		jsonElementExpectation{newErrorGenerator("no-error"), "\\{\"error\":\"no-error\"\\}"},
-		jsonElementExpectation{newIntFromSetGenerator([]int{1,2,3}), "1|2|3"},
-		jsonElementExpectation{newStringFromSetGenerator([]string{"a","b","c"}), "a|b|c"},
+		jsonElementExpectation{newIntFromSetGenerator([]int{1, 2, 3}), "1|2|3"},
+		jsonElementExpectation{newStringFromSetGenerator([]string{"a", "b", "c"}), "a|b|c"},
 	}
 
 	for index, expect := range expects {

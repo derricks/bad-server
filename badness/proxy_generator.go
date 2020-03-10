@@ -123,7 +123,7 @@ func urlFromHostAndUrl(newHost string, oldURL *url.URL) (*url.URL, error) {
 		oldCopy.Host = parsedUrl.Host
 	}
 
-	if parsedUrl.Path != oldCopy.Path && parsedUrl.Path != ""{
+	if parsedUrl.Path != oldCopy.Path && parsedUrl.Path != "" {
 		oldCopy.Path = parsedUrl.Path
 	}
 

@@ -117,24 +117,26 @@ func enumGeneratorFromIntEnumDataType(declaration json_template.EnumIntDataType)
 type stringFromSetGenerator struct {
 	values []string
 }
+
 func (generator stringFromSetGenerator) generate(writer io.Writer) (int, error) {
 	index := rand.Intn(len(generator.values))
 	return newFixedStringGenerator(generator.values[index]).generate(writer)
 }
 
-func newStringFromSetGenerator(values []string) jsonElementGenerator{
+func newStringFromSetGenerator(values []string) jsonElementGenerator {
 	return &stringFromSetGenerator{values}
 }
 
 type intFromSetGenerator struct {
 	values []int
 }
+
 func (generator intFromSetGenerator) generate(writer io.Writer) (int, error) {
 	index := rand.Intn(len(generator.values))
 	return newFixedIntGenerator(generator.values[index]).generate(writer)
 }
 
-func newIntFromSetGenerator(values []int) jsonElementGenerator{
+func newIntFromSetGenerator(values []int) jsonElementGenerator {
 	return &intFromSetGenerator{values}
 }
 

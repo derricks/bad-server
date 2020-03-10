@@ -18,21 +18,24 @@ type urlFromUrlTest struct {
 func TestUrlFromHostAndUrl(test *testing.T) {
 
 	tests := []urlFromUrlTest{
-		urlFromUrlTest{"https://www.google.com", "www.yahoo.com", "https", "www.abc.com", "", "", false},
-		urlFromUrlTest{"12345", "www.yahoo.com", "https", "www.yahoo.com", "", "", true},
+		urlFromUrlTest{"https://www.google.com", "http://www.yahoo.com", "http", "www.yahoo.com", "", "", false},
 	}
 
 	for index, testCase := range tests {
-		parsedBase, err := url.Parse(testCase.baseUrl)
+		parsedBase, _ := url.Parse(testCase.baseUrl)
+		newURL, err := urlFromHostAndUrl(testCase.overlayUrl, parsedBase)
 		if err != nil && !testCase.expectError {
 			test.Fatalf("Test %d: Unexpected error: %v", index, err)
 		}
 
-		if err != nil && testCase.expectError {
+		if err == nil && testCase.expectError {
 			test.Fatalf("Test %d: Expected error but didn't get one", index)
 		}
 
-		newURL, _ := urlFromHostAndUrl(testCase.overlayUrl, parsedBase)
+		if err != nil { // no sense evaluating the rest of the test cases
+			continue
+		}
+
 		compareFunc := func(expected, actual, fieldName string) {
 			if expected != actual {
 				test.Errorf("Test case %d: Expected %s of %s but got %s", index, fieldName, expected, actual)

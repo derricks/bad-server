@@ -105,11 +105,11 @@ func urlFromHostAndUrl(newHost string, oldURL *url.URL) (*url.URL, error) {
 		Fragment:   oldURL.Fragment,
 	}
 
-	if parsedUrl.Scheme != oldCopy.Scheme {
+	if parsedUrl.Scheme != oldCopy.Scheme && parsedUrl.Scheme != "" {
 		oldCopy.Scheme = parsedUrl.Scheme
 	}
 
-	if parsedUrl.Opaque != oldCopy.Opaque {
+	if parsedUrl.Opaque != oldCopy.Opaque && parsedUrl.Opaque != "" {
 		oldCopy.Opaque = parsedUrl.Opaque
 	}
 
@@ -119,11 +119,11 @@ func urlFromHostAndUrl(newHost string, oldURL *url.URL) (*url.URL, error) {
 		}
 	}
 
-	if parsedUrl.Host != oldCopy.Host {
+	if parsedUrl.Host != oldCopy.Host && parsedUrl.Host != "" {
 		oldCopy.Host = parsedUrl.Host
 	}
 
-	if parsedUrl.Path != oldCopy.Path {
+	if parsedUrl.Path != oldCopy.Path && parsedUrl.Path != ""{
 		oldCopy.Path = parsedUrl.Path
 	}
 

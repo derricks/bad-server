@@ -28,6 +28,8 @@ func TestJsonElementGeneration(test *testing.T) {
 		jsonElementExpectation{newErrorGenerator("no-error"), "\\{\"error\":\"no-error\"\\}"},
 		jsonElementExpectation{newIntFromSetGenerator([]int{1, 2, 3}), "1|2|3"},
 		jsonElementExpectation{newStringFromSetGenerator([]string{"a", "b", "c"}), "a|b|c"},
+		jsonElementExpectation{newFloatGenerator(3.3), "^[0-9.]+$"},
+		jsonElementExpectation{newFloatFromSetGenerator([]float64{1.0, 2.0, 3.0}), "^1.0|2.0|3.0"},
 	}
 
 	for index, expect := range expects {

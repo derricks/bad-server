@@ -28,6 +28,9 @@ const (
 	INT_DATA_TYPE       = "INT"
 	INCREMENT_DATA_TYPE = "INCREMENT"
 	BOOL_DATA_TYPE      = "BOOL"
+	FLOAT_DATA_TYPE     = "FLOAT"
+	// for use with floats
+	PERIOD = "PERIOD"
 
 	// keys or sizes
 	KEY_NAME = "KEY_NAME"
@@ -47,6 +50,7 @@ var dataTypes = map[string]TokenType{
 	"int":       INT_DATA_TYPE,
 	"increment": INCREMENT_DATA_TYPE,
 	"bool":      BOOL_DATA_TYPE,
+	"float":     FLOAT_DATA_TYPE,
 }
 
 // stringToToken decides if the passed-string is a known datatype or not

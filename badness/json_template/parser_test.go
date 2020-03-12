@@ -67,6 +67,7 @@ func TestTokenLiterals(test *testing.T) {
 		{"book=title/string,pages/[string]", "{title: string, pages: [string]:10000}"},
 		{"[string|a,b,c]", "[(a|b|c)]:10000"},
 		{"int|1,2,3", "(1|2|3)"},
+		{"float|1,2.3,3.4", "(1|2.3|3.4)"},
 	}
 
 	for testNumber, testCase := range tests {
@@ -125,6 +126,7 @@ func TestParseErrors(test *testing.T) {
 		"book=pages/[page]:100;%;page=text/string",
 		"int|1,a,3",
 		"int|",
+		"int|1,1.2,3",
 	}
 
 	for testNumber, testCase := range tests {

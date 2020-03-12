@@ -51,7 +51,7 @@ func (lexer *Lexer) NextToken() Token {
 			token.Type = stringToToken(fullString)
 			token.Literal = fullString
 			return token
-		} else if isDigit(lexer.ch) {
+		} else if isDigit(lexer.ch) || lexer.ch == '.' {
 			number := lexer.readNumber()
 			token.Type = NUMBER
 			token.Literal = string(number)
@@ -75,7 +75,7 @@ func (lexer *Lexer) readString() string {
 
 func (lexer *Lexer) readNumber() string {
 	position := lexer.position
-	for isDigit(lexer.ch) {
+	for isDigit(lexer.ch) || lexer.ch == '.' {
 		lexer.readChar()
 	}
 	return lexer.input[position:lexer.position]

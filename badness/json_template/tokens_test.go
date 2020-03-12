@@ -11,6 +11,7 @@ func TestStringToToken(test *testing.T) {
 		"bool":      "BOOL",
 		"increment": "INCREMENT",
 		"sniffle":   "KEY_NAME",
+		"float":     "FLOAT",
 	}
 
 	for input, expected := range tests {
@@ -27,6 +28,7 @@ func TestIsDataType(test *testing.T) {
 		"int":       true,
 		"bool":      true,
 		"increment": true,
+		"float":     true,
 		"sniffle":   false,
 	}
 

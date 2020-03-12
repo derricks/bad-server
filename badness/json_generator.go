@@ -58,6 +58,8 @@ func generatorFromDataDeclaration(template *json_template.Template, declaration 
 		return enumGeneratorFromStringEnumDataType(declaration.(json_template.EnumStringDataType))
 	case json_template.EnumIntDataType:
 		return enumGeneratorFromIntEnumDataType(declaration.(json_template.EnumIntDataType))
+	case json_template.EnumFloatDataType:
+		return enumGeneratorFromFloatEnumDataType(declaration.(json_template.EnumFloatDataType))
 	default:
 		return nil, fmt.Errorf("Unknown type: %v", declaration)
 	}
@@ -101,6 +103,8 @@ func primitiveGeneratorFromDataType(declaration json_template.PrimitiveDataType)
 		return newBooleanGenerator(), nil
 	case "increment":
 		return newIncrementGenerator(1), nil
+	case "float":
+		return newFloatGenerator(1.0), nil
 	default:
 		return nil, fmt.Errorf("Unknown primitive type: %s", declaration.TokenLiteral())
 	}
@@ -112,6 +116,10 @@ func enumGeneratorFromStringEnumDataType(declaration json_template.EnumStringDat
 
 func enumGeneratorFromIntEnumDataType(declaration json_template.EnumIntDataType) (jsonElementGenerator, error) {
 	return newIntFromSetGenerator(declaration.Values), nil
+}
+
+func enumGeneratorFromFloatEnumDataType(declaration json_template.EnumFloatDataType) (jsonElementGenerator, error) {
+	return newFloatFromSetGenerator(declaration.Values), nil
 }
 
 type stringFromSetGenerator struct {
@@ -138,6 +146,18 @@ func (generator intFromSetGenerator) generate(writer io.Writer) (int, error) {
 
 func newIntFromSetGenerator(values []int) jsonElementGenerator {
 	return &intFromSetGenerator{values}
+}
+
+type floatFromSetGenerator struct {
+	values []float64
+}
+
+func (generator floatFromSetGenerator) generate(writer io.Writer) (int, error) {
+	index := rand.Intn(len(generator.values))
+	return fixedFloatGenerator{generator.values[index]}.generate(writer)
+}
+func newFloatFromSetGenerator(values []float64) jsonElementGenerator {
+	return floatFromSetGenerator{values}
 }
 
 // writeGeneratorsInList concatenates the output of the generators into the writer with the given character
@@ -258,6 +278,28 @@ func (generator intGenerator) generate(writer io.Writer) (int, error) {
 
 func newIntGenerator(maxNum int) jsonElementGenerator {
 	return intGenerator{maxNum}
+}
+
+// ----------------- float generates a random float up to the max
+type floatGenerator struct {
+	maxNumber float64
+}
+
+func (generator floatGenerator) generate(writer io.Writer) (int, error) {
+	return fixedFloatGenerator{rand.Float64() * generator.maxNumber}.generate(writer)
+}
+
+func newFloatGenerator(max float64) jsonElementGenerator {
+	return floatGenerator{max}
+}
+
+type fixedFloatGenerator struct {
+	value float64
+}
+
+func (generator fixedFloatGenerator) generate(writer io.Writer) (int, error) {
+	floatAsString := fmt.Sprintf("%f", generator.value)
+	return writer.Write([]byte(floatAsString))
 }
 
 // ---------- generates a fixed int

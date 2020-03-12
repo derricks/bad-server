@@ -129,6 +129,7 @@ func (parser *Parser) parseEnum(dataType string, stringValues []string) (DataDec
 				enumValueFloats = append(enumValueFloats, floatValue)
 			}
 		}
+		enum.Values = enumValueFloats
 		return enum, nil
 	default:
 		// unlikely, given we have logic above ensuring it's a data type
@@ -175,7 +176,7 @@ func (parser *Parser) parseRawString() (DataDeclaration, error) {
 // parses an array. parser is currently at [
 func (parser *Parser) parseArray() (DataDeclaration, error) {
 	array := ArrayDataType{Length: 10000}
-	if err := parser.assertPeekTypeOneOf([]TokenType{KEY_NAME, STRING_DATA_TYPE, BOOL_DATA_TYPE, INT_DATA_TYPE, INCREMENT_DATA_TYPE}); err != nil {
+	if err := parser.assertPeekTypeOneOf([]TokenType{KEY_NAME, STRING_DATA_TYPE, BOOL_DATA_TYPE, INT_DATA_TYPE, INCREMENT_DATA_TYPE, FLOAT_DATA_TYPE}); err != nil {
 		return nil, err
 	}
 	parser.nextToken()

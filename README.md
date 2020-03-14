@@ -15,6 +15,29 @@ header in a request. Exceptions to this include:
   * X-Return-Header
   * X-Random-Json
 
+Some Example Scenarios
+----------------------
+Goal: Test how your client handles 500s.
+Headers to Send:
+
+    X-Response-Code-Histogram: 500
+
+Goal: Test a circuit breaker pattern in your client, if it kicks in when error rate is 10%
+Headers to Send:
+
+    X-Response-Code-Histogram: 500=10,200=90
+
+  and then later, to test circuit breaker recovery
+
+    X-Response-Code-Historgram: 200
+
+Goal: Test what happens when the server sends an unknown HTTP code
+Headers to Send:
+
+    X-Response-Code-Histogram: 455
+
+Goal: Test what happens if the server says it's sending one thing but sends something else.
+
 Headers
 -------
 X-Response-Code-Histogram: send a status code based on an input histogram
